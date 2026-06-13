@@ -84,6 +84,10 @@ def create_app() -> FastAPI:
     app.include_router(clarification.router)
     app.include_router(metrics.router)
 
+    # Bundle router (Dev B)
+    from app.routers import bundles
+    app.include_router(bundles.router)
+
     # Cart & Checkout routers (Dev C)
     app.include_router(cart.router)
     app.include_router(checkout.router)

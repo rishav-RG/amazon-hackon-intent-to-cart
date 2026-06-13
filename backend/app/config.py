@@ -43,6 +43,9 @@ class Config(BaseSettings):
     Optional fields (have defaults):
         CORS_ORIGINS: List of allowed CORS origins, parsed from comma-separated env var.
         DEBUG: Enable debug mode.
+        
+    Dev B fields (Bundle Engine):
+        Ranking weights, inventory/ETA mock config, bundle cache TTL.
     """
 
     DATABASE_URL: str
@@ -50,6 +53,23 @@ class Config(BaseSettings):
     CORS_ORIGINS: list[str] = ["http://localhost:3000"]
     APP_ENV: Literal["development", "staging", "production"]
     DEBUG: bool = False
+    
+    # Dev B - Ranking Engine Weights (must sum to 1.0)
+    RANKING_WEIGHT_INTENT_MATCH: float = 0.30
+    RANKING_WEIGHT_INVENTORY: float = 0.25
+    RANKING_WEIGHT_ETA: float = 0.15
+    RANKING_WEIGHT_PERSONALIZATION: float = 0.20
+    RANKING_WEIGHT_COMPLETENESS: float = 0.10
+    
+    # Dev B - Inventory Mock Config
+    MOCK_INVENTORY_OOS_RATE: float = 0.15  # 15% of products OOS
+    
+    # Dev B - ETA Mock Config
+    MOCK_ETA_MIN_MINUTES: int = 20
+    MOCK_ETA_MAX_MINUTES: int = 90
+    
+    # Dev B - Bundle Cache TTL
+    BUNDLE_CACHE_TTL_SECONDS: int = 600  # 10 minutes
 
     model_config = SettingsConfigDict(
         env_file=".env",
