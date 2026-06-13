@@ -63,3 +63,6 @@ typing_extensions==4.15.0
 uvicorn==0.49.0
 watchfiles==1.2.0
 websockets==16.0
+
+# Additional dependency for Phase 1
+pydantic-settings==2.6.1
