@@ -230,8 +230,8 @@ async def main() -> None:
     # --- Seed Redis ---
     print("[2/2] Seeding Redis cache...")
     try:
-        redis = await get_redis()
-        await seed_redis(redis)
+        async for redis in get_redis():
+            await seed_redis(redis)
         print("  [Redis] Done.\n")
     except NotImplementedError:
         print("  [Redis] WARNING: get_redis() not implemented yet (placeholder).")

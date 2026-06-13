@@ -63,7 +63,7 @@ async def test_cache_get_redis_error_raises_runtime_error():
     mock_redis.get.side_effect = ConnectionError("Connection refused")
 
     async def failing_get_redis():
-        return mock_redis
+        yield mock_redis
 
     with patch("app.utils.cache.get_redis", new=failing_get_redis):
         with pytest.raises(RuntimeError, match="Cache read failed for key 'k1'"):
@@ -77,7 +77,7 @@ async def test_cache_set_redis_error_raises_runtime_error():
     mock_redis.set.side_effect = ConnectionError("Connection refused")
 
     async def failing_get_redis():
-        return mock_redis
+        yield mock_redis
 
     with patch("app.utils.cache.get_redis", new=failing_get_redis):
         with pytest.raises(RuntimeError, match="Cache write failed for key 'k2'"):
@@ -91,7 +91,7 @@ async def test_cache_delete_redis_error_raises_runtime_error():
     mock_redis.delete.side_effect = ConnectionError("Connection refused")
 
     async def failing_get_redis():
-        return mock_redis
+        yield mock_redis
 
     with patch("app.utils.cache.get_redis", new=failing_get_redis):
         with pytest.raises(RuntimeError, match="Cache delete failed for key 'k3'"):

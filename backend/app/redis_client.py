@@ -1,18 +1,40 @@
-"""
-Placeholder Redis client module.
+"""Redis connection pool and async dependency for FastAPI."""
 
-⚠️ This is a stub awaiting Dev A's final implementation.
-The actual `get_redis()` function should return an aioredis-compatible
-async Redis connection instance.
-"""
+from typing import AsyncGenerator
+
+import redis.asyncio as redis
+
+from app.config import settings
+from app.exceptions import AppException, REDIS_CONNECTION_ERROR
+
+pool: redis.ConnectionPool | None = None
 
 
-async def get_redis():
-    """Return an async Redis connection.
+async def init_redis() -> None:
+    """Initialize the Redis connection pool from settings.REDIS_URL."""
+    global pool
+    pool = redis.ConnectionPool.from_url(settings.REDIS_URL)
 
-    Raises:
-        NotImplementedError: This is a placeholder — Dev A will provide the real implementation.
+
+async def get_redis() -> AsyncGenerator[redis.Redis, None]:
+    """FastAPI dependency that yields a Redis client from the connection pool.
+
+    Wraps connection failures in AppException with REDIS_CONNECTION_ERROR.
     """
-    raise NotImplementedError(
-        "get_redis() is a placeholder. Dev A must provide the actual Redis client implementation."
-    )
+    client = redis.Redis(connection_pool=pool)
+    try:
+        yield client
+    except redis.ConnectionError as exc:
+        raise AppException(
+            error_code=REDIS_CONNECTION_ERROR[0],
+            message=f"Redis connection failed: {exc}",
+            status_code=REDIS_CONNECTION_ERROR[1],
+        ) from exc
+    except redis.RedisError as exc:
+        raise AppException(
+            error_code=REDIS_CONNECTION_ERROR[0],
+            message=f"Redis error: {exc}",
+            status_code=REDIS_CONNECTION_ERROR[1],
+        ) from exc
+    finally:
+        await client.aclose()

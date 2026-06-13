@@ -25,11 +25,14 @@ async def cache_get(key: str) -> Optional[dict]:
         RuntimeError: If the Redis operation fails.
     """
     try:
-        redis = await get_redis()
-        raw = await redis.get(key)
-        if raw is None:
-            return None
-        return json.loads(raw)
+        async for redis in get_redis():
+            raw = await redis.get(key)
+            if raw is None:
+                return None
+            return json.loads(raw)
+        return None
+    except RuntimeError:
+        raise
     except Exception as e:
         raise RuntimeError(f"Cache read failed for key '{key}': {e}") from e
 
@@ -46,8 +49,11 @@ async def cache_set(key: str, value: dict, ttl: int) -> None:
         RuntimeError: If the Redis operation fails.
     """
     try:
-        redis = await get_redis()
-        await redis.set(key, json.dumps(value), ex=ttl)
+        async for redis in get_redis():
+            await redis.set(key, json.dumps(value), ex=ttl)
+            return
+    except RuntimeError:
+        raise
     except Exception as e:
         raise RuntimeError(f"Cache write failed for key '{key}': {e}") from e
 
@@ -62,7 +68,10 @@ async def cache_delete(key: str) -> None:
         RuntimeError: If the Redis operation fails.
     """
     try:
-        redis = await get_redis()
-        await redis.delete(key)
+        async for redis in get_redis():
+            await redis.delete(key)
+            return
+    except RuntimeError:
+        raise
     except Exception as e:
         raise RuntimeError(f"Cache delete failed for key '{key}': {e}") from e

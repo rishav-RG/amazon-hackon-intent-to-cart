@@ -5,7 +5,7 @@ from sqlalchemy import select
 from app.database import get_db
 from app.utils.user import get_current_user_id
 from app.utils.cache import cache_get, cache_set
-from app.models.cart import Cart, CartItem
+from app.models.cart import Cart_Model, CartItem
 from app.adapters.catalog_adapter import ProductCatalogAdapter
 from app.schemas.checkout import BuyAgainItem
 
@@ -29,8 +29,8 @@ async def buy_again(
     # DB fallback: Cart join CartItem for checked-out carts
     result = await db.execute(
         select(CartItem)
-        .join(Cart, CartItem.cart_id == Cart.id)
-        .where(Cart.user_id == user_id, Cart.status == "checked_out")
+        .join(Cart_Model, CartItem.cart_id == Cart_Model.id)
+        .where(Cart_Model.user_id == user_id, Cart_Model.status == "checked_out")
     )
     items = result.scalars().all()
 

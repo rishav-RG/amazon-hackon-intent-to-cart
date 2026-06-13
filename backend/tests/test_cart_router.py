@@ -14,7 +14,7 @@ from httpx import AsyncClient, ASGITransport
 
 from app.main import app
 from app.database import get_db
-from app.models.cart import Cart, CartItem
+from app.models.cart import Cart_Model as Cart, CartItem
 from tests.stubs.database import get_test_db
 
 pytestmark = pytest.mark.asyncio
@@ -58,12 +58,12 @@ async def test_patch_cart_add_operation_returns_200():
     """PATCH /v1/cart with an add operation returns 200 with the updated cart."""
     existing_cart = _make_cart(version=1)
     updated_cart = _make_cart(version=2, items=[
-        CartItem(cart_id="cart-100", product_id="prod-1", quantity=2, is_substituted=0)
+        CartItem(cart_id="cart-100", product_id="prod-1", quantity=2, product_name="Test", price=5.0)
     ])
     serialized_updated = _make_serialized_cart(
         version=2,
-        items=[{"productId": "prod-1", "quantity": 2, "isSubstituted": 0}],
-        total=2.0,
+        items=[{"productId": "prod-1", "quantity": 2, "price": 5.0}],
+        total=10.0,
     )
 
     mock_service_instance = AsyncMock()
@@ -144,13 +144,13 @@ async def test_patch_cart_new_user_creates_cart():
     """PATCH /v1/cart for a user with no existing cart auto-creates one."""
     new_cart = _make_cart(cart_id="cart-new", version=0)
     saved_cart = _make_cart(cart_id="cart-new", version=1, items=[
-        CartItem(cart_id="cart-new", product_id="prod-X", quantity=1, is_substituted=0)
+        CartItem(cart_id="cart-new", product_id="prod-X", quantity=1, product_name="Test", price=5.0)
     ])
     serialized_saved = _make_serialized_cart(
         cart_id="cart-new",
         version=1,
-        items=[{"productId": "prod-X", "quantity": 1, "isSubstituted": 0}],
-        total=1.0,
+        items=[{"productId": "prod-X", "quantity": 1, "price": 5.0}],
+        total=5.0,
     )
 
     mock_service_instance = AsyncMock()

@@ -1,22 +1,46 @@
 """
-Placeholder database module.
+Async database connectivity module.
 
-⚠️ This is a stub awaiting Dev A's final implementation.
-The actual `get_db()` function should yield an AsyncSession
-from SQLAlchemy's async session factory.
+Provides SQLAlchemy async engine, session factory, and FastAPI dependency
+for database session injection.
 """
-from typing import AsyncGenerator
 
-from sqlalchemy.ext.asyncio import AsyncSession
+from collections.abc import AsyncGenerator
+
+from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+
+from app.config import settings
+from app.exceptions import AppException, DB_CONNECTION_ERROR
+
+engine = create_async_engine(settings.DATABASE_URL, echo=settings.DEBUG)
+
+AsyncSessionLocal = async_sessionmaker(engine, expire_on_commit=False)
 
 
 async def get_db() -> AsyncGenerator[AsyncSession, None]:
-    """Yield an async database session.
+    """FastAPI dependency that yields an async database session.
 
-    Raises:
-        NotImplementedError: This is a placeholder — Dev A will provide the real implementation.
+    Wraps connection failures in AppException with DB_CONNECTION_ERROR code.
     """
-    raise NotImplementedError(
-        "get_db() is a placeholder. Dev A must provide the actual database session factory."
-    )
-    yield  # noqa: unreachable — keeps this as an async generator for type-checking
+    try:
+        async with AsyncSessionLocal() as session:
+            try:
+                yield session
+            finally:
+                await session.close()
+    except AppException:
+        raise
+    except Exception as exc:
+        raise AppException(
+            error_code=DB_CONNECTION_ERROR[0],
+            message=f"Database connection failed: {exc}",
+            status_code=DB_CONNECTION_ERROR[1],
+        ) from exc
+
+
+async def dispose_engine() -> None:
+    """Dispose of the async engine, closing all pooled connections.
+
+    Should be called during application shutdown.
+    """
+    await engine.dispose()

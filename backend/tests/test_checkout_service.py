@@ -6,7 +6,7 @@ Validates: Requirements 5.1, 5.2, 5.3, 5.4, 5.5, 5.6, 5.7, 5.8, 5.10
 import pytest
 from unittest.mock import patch, AsyncMock, MagicMock
 
-from app.models.cart import Cart, CartItem
+from app.models.cart import Cart_Model as Cart, CartItem
 from app.services.checkout_service import (
     CheckoutService,
     CartNotActiveError,
@@ -32,7 +32,7 @@ def _make_cart(cart_id="cart-1", user_id="user-1", status="active", items=None):
 
 def _make_cart_item(product_id="prod-1", quantity=1):
     """Create a CartItem instance."""
-    return CartItem(id=f"item-{product_id}", cart_id="cart-1", product_id=product_id, quantity=quantity)
+    return CartItem(id=f"item-{product_id}", cart_id="cart-1", product_id=product_id, quantity=quantity, product_name="Test Product", price=9.99)
 
 
 def _session_returning_cart(cart):

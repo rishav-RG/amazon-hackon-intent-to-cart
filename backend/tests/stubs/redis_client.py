@@ -30,9 +30,9 @@ class FakeRedis:
 _instance: Optional[FakeRedis] = None
 
 
-async def get_redis() -> FakeRedis:
-    """Return a singleton FakeRedis instance."""
+async def get_redis():
+    """Yield a singleton FakeRedis instance (async generator to match real API)."""
     global _instance
     if _instance is None:
         _instance = FakeRedis()
-    return _instance
+    yield _instance

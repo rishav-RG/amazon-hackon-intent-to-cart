@@ -8,7 +8,7 @@ import json
 import pytest
 from unittest.mock import patch, MagicMock, AsyncMock
 
-from app.models.cart import Cart, CartItem
+from app.models.cart import Cart_Model as Cart, CartItem
 from app.services.cart_service import CartService
 from app.events import _subscribers
 from tests.stubs.database import create_mock_session
@@ -17,6 +17,13 @@ from tests.stubs.redis_client import FakeRedis
 # The cache module imports get_redis from app.redis_client at the module level,
 # so we patch the reference where it lives: app.utils.cache.get_redis
 PATCH_GET_REDIS = "app.utils.cache.get_redis"
+
+
+def _make_get_redis(fake_redis):
+    """Create an async generator that yields the given FakeRedis instance."""
+    async def _get_redis():
+        yield fake_redis
+    return _get_redis
 
 
 @pytest.fixture(autouse=True)
@@ -55,7 +62,7 @@ async def test_create_initializes_cart(cart_service, mock_session, fake_redis):
     """create() should produce a Cart with the given user_id and version=0."""
 
     async def _get_redis():
-        return fake_redis
+        yield fake_redis
 
     with patch(PATCH_GET_REDIS, side_effect=_get_redis):
         cart = await cart_service.create(user_id="user-123", bundle_id="bundle-A")
@@ -81,7 +88,7 @@ async def test_get_returns_from_cache(cart_service, fake_redis):
     fake_redis._store["cart:cart-1"] = json.dumps(cached_data)
 
     async def _get_redis():
-        return fake_redis
+        yield fake_redis
 
     with patch(PATCH_GET_REDIS, side_effect=_get_redis):
         result = await cart_service.get("cart-1")
@@ -102,7 +109,7 @@ async def test_get_falls_back_to_db(mock_session, fake_redis):
     # Create a Cart object the DB will return
     db_cart = Cart(id="cart-2", user_id="user-x", status="active", version=3)
     db_cart.items = [
-        CartItem(cart_id="cart-2", product_id="prod-1", quantity=2, is_substituted=0)
+        CartItem(cart_id="cart-2", product_id="prod-1", quantity=2, product_name="Test", price=5.0)
     ]
 
     # Configure mock session to return the cart
@@ -113,7 +120,7 @@ async def test_get_falls_back_to_db(mock_session, fake_redis):
     service = CartService(db=mock_session)
 
     async def _get_redis():
-        return fake_redis
+        yield fake_redis
 
     with patch(PATCH_GET_REDIS, side_effect=_get_redis):
         result = await service.get("cart-2")
@@ -154,7 +161,7 @@ async def test_apply_operations_add(cart_service):
 @pytest.mark.asyncio
 async def test_apply_operations_remove(cart_service, mock_session):
     """apply_operations with 'remove' should remove the matching item."""
-    item = CartItem(cart_id="cart-4", product_id="prod-B", quantity=1, is_substituted=0)
+    item = CartItem(cart_id="cart-4", product_id="prod-B", quantity=1, product_name="Test", price=5.0)
     cart = Cart(id="cart-4", user_id="user-1", status="active", version=1)
     cart.items = [item]
 
@@ -167,7 +174,7 @@ async def test_apply_operations_remove(cart_service, mock_session):
 @pytest.mark.asyncio
 async def test_apply_operations_update(cart_service):
     """apply_operations with 'update' should change the item's quantity."""
-    item = CartItem(cart_id="cart-5", product_id="prod-C", quantity=1, is_substituted=0)
+    item = CartItem(cart_id="cart-5", product_id="prod-C", quantity=1, product_name="Test", price=5.0)
     cart = Cart(id="cart-5", user_id="user-1", status="active", version=1)
     cart.items = [item]
 
@@ -200,7 +207,7 @@ async def test_save_increments_version_and_emits_event(mock_session, fake_redis)
     service = CartService(db=mock_session)
 
     async def _get_redis():
-        return fake_redis
+        yield fake_redis
 
     with patch(PATCH_GET_REDIS, side_effect=_get_redis):
         result = await service.save(cart)

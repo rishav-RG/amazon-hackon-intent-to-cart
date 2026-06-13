@@ -2,7 +2,7 @@ from typing import Optional
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
-from app.models.cart import Cart, CartItem
+from app.models.cart import Cart_Model, CartItem
 from app.utils.cache import cache_get, cache_set, cache_delete
 from app.events import emit
 
@@ -13,9 +13,9 @@ class CartService:
     def __init__(self, db: AsyncSession):
         self.db = db
 
-    async def create(self, user_id: str, bundle_id: Optional[str] = None) -> Cart:
+    async def create(self, user_id: str, bundle_id: Optional[str] = None) -> Cart_Model:
         """Create a new cart for the user."""
-        cart = Cart(user_id=user_id, bundle_id=bundle_id, status="active", version=0)
+        cart = Cart_Model(user_id=user_id, bundle_id=bundle_id, status="active", version=0)
         self.db.add(cart)
         await self.db.commit()
         await self.db.refresh(cart)
@@ -29,7 +29,7 @@ class CartService:
         if cached is not None:
             return cached
         # DB fallback
-        result = await self.db.execute(select(Cart).where(Cart.id == cart_id))
+        result = await self.db.execute(select(Cart_Model).where(Cart_Model.id == cart_id))
         cart = result.scalar_one_or_none()
         if cart is None:
             return None
@@ -37,14 +37,14 @@ class CartService:
         await cache_set(f"cart:{cart_id}", serialized, CART_CACHE_TTL)
         return serialized
 
-    async def get_by_user(self, user_id: str) -> Optional[Cart]:
+    async def get_by_user(self, user_id: str) -> Optional[Cart_Model]:
         """Get active cart for user from DB."""
         result = await self.db.execute(
-            select(Cart).where(Cart.user_id == user_id, Cart.status == "active")
+            select(Cart_Model).where(Cart_Model.user_id == user_id, Cart_Model.status == "active")
         )
         return result.scalar_one_or_none()
 
-    async def apply_operations(self, cart: Cart, operations: list[dict]) -> Cart:
+    async def apply_operations(self, cart: Cart_Model, operations: list[dict]) -> Cart_Model:
         """Apply add/remove/update operations to a cart."""
         for op in operations:
             op_type = op["type"]
@@ -56,7 +56,7 @@ class CartService:
                 await self._update_item(cart, op["productId"], op["quantity"])
         return cart
 
-    async def save(self, cart: Cart) -> Cart:
+    async def save(self, cart: Cart_Model) -> Cart_Model:
         """Persist cart: increment version, write to Redis (primary) + DB (write-through)."""
         cart.version += 1
         # Redis primary write
@@ -73,13 +73,13 @@ class CartService:
         })
         return cart
 
-    def check_version(self, cart: Cart, client_version: Optional[int]) -> bool:
+    def check_version(self, cart: Cart_Model, client_version: Optional[int]) -> bool:
         """Return True if version matches (or no version supplied)."""
         if client_version is None:
             return True
         return cart.version == client_version
 
-    def _serialize(self, cart: Cart) -> dict:
+    def _serialize(self, cart: Cart_Model) -> dict:
         """Convert cart ORM object to dict for caching."""
         return {
             "cartId": str(cart.id),
@@ -88,20 +88,20 @@ class CartService:
                 {
                     "productId": item.product_id,
                     "quantity": item.quantity,
-                    "isSubstituted": item.is_substituted,
+                    "price": getattr(item, "price", 0),
                 }
                 for item in cart.items
             ],
-            "total": sum(item.quantity for item in cart.items),  # placeholder
+            "total": sum(getattr(item, "price", 0) * item.quantity for item in cart.items),
             "status": cart.status,
         }
 
-    async def _add_item(self, cart: Cart, product_id: str, quantity: int) -> None:
-        item = CartItem(cart_id=cart.id, product_id=product_id, quantity=quantity)
+    async def _add_item(self, cart: Cart_Model, product_id: str, quantity: int) -> None:
+        item = CartItem(cart_id=cart.id, product_id=product_id, quantity=quantity, product_name="", price=0)
         self.db.add(item)
         cart.items.append(item)
 
-    async def _remove_item(self, cart: Cart, product_id: str) -> None:
+    async def _remove_item(self, cart: Cart_Model, product_id: str) -> None:
         cart.items = [i for i in cart.items if i.product_id != product_id]
         await self.db.execute(
             CartItem.__table__.delete().where(
@@ -109,7 +109,7 @@ class CartService:
             )
         )
 
-    async def _update_item(self, cart: Cart, product_id: str, quantity: int) -> None:
+    async def _update_item(self, cart: Cart_Model, product_id: str, quantity: int) -> None:
         for item in cart.items:
             if item.product_id == product_id:
                 item.quantity = quantity

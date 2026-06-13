@@ -27,7 +27,7 @@ HEADERS = {"X-User-ID": "user-1"}
 
 def _make_cart_item(product_id: str) -> CartItem:
     """Create a CartItem stub with the given product_id."""
-    return CartItem(id=f"item-{product_id}", cart_id="cart-1", product_id=product_id, quantity=1)
+    return CartItem(id=f"item-{product_id}", cart_id="cart-1", product_id=product_id, quantity=1, product_name="Test", price=5.0)
 
 
 # ---------------------------------------------------------------------------

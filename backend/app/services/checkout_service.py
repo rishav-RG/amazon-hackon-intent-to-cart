@@ -2,8 +2,9 @@ import asyncio
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
-from app.models.cart import Cart
-from app.models.user_preference import UserPreference
+from app.models.cart import Cart_Model
+from app.models.cart import CartItem
+from app.models.user_preference import UserPreference_Model
 from app.adapters.inventory_adapter import InventoryAdapter
 from app.adapters.order_adapter import OrderAdapter
 from app.events import emit
@@ -26,7 +27,7 @@ class CheckoutService:
         7. Emit event
         """
         # Step 1: Hard Postgres read
-        result = await self.db.execute(select(Cart).where(Cart.id == cart_id))
+        result = await self.db.execute(select(Cart_Model).where(Cart_Model.id == cart_id))
         cart = result.scalar_one_or_none()
         if cart is None:
             raise ValueError(f"Cart {cart_id} not found")
@@ -80,11 +81,11 @@ class CheckoutService:
         """Async background task to update user preference affinities."""
         try:
             result = await self.db.execute(
-                select(UserPreference).where(UserPreference.user_id == user_id)
+                select(UserPreference_Model).where(UserPreference_Model.user_id == user_id)
             )
             pref = result.scalar_one_or_none()
             if pref is None:
-                pref = UserPreference(user_id=user_id)
+                pref = UserPreference_Model(user_id=user_id)
                 self.db.add(pref)
             # Update affinities based on purchased items (implementation detail)
             await self.db.commit()

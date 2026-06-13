@@ -1,48 +1,111 @@
 """
-Stub Cart and CartItem ORM models.
+Cart and CartItem SQLAlchemy models.
 
-⚠️ Dev A will provide the real implementation.
-These stubs define the expected interface so Dev C's code can be imported.
+Represents shopping carts with optimistic locking and their line items,
+stored in the 'carts' and 'cart_items' tables respectively.
 """
-from sqlalchemy import Column, String, Integer, ForeignKey
-from sqlalchemy.orm import relationship, DeclarativeBase
+
+import uuid
+
+from sqlalchemy import (
+    CheckConstraint,
+    DateTime,
+    Float,
+    Integer,
+    String,
+    ForeignKey,
+    func,
+)
+from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.orm import Mapped, mapped_column, relationship
+
+from . import Base
 
 
-class Base(DeclarativeBase):
-    pass
+class Cart_Model(Base):
+    """SQLAlchemy model for the 'carts' table.
 
+    Stores shopping carts linked to users and optionally to bundles.
+    Uses optimistic locking via the version column.
+    """
 
-class Cart(Base):
     __tablename__ = "carts"
+    __table_args__ = (
+        CheckConstraint(
+            "status IN ('active', 'checked_out', 'abandoned')",
+            name="ck_carts_status",
+        ),
+    )
 
-    id = Column(String, primary_key=True)
-    user_id = Column(String, nullable=False)
-    bundle_id = Column(String, nullable=True)
-    status = Column(String, nullable=False, default="active")
-    version = Column(Integer, nullable=False, default=0)
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid.uuid4,
+    )
+    user_id: Mapped[str] = mapped_column(String(255), nullable=False)
+    bundle_id: Mapped[uuid.UUID | None] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("bundles.id"),
+        nullable=True,
+    )
+    status: Mapped[str] = mapped_column(
+        String(50),
+        nullable=False,
+        default="active",
+        server_default="active",
+    )
+    version: Mapped[int] = mapped_column(
+        Integer,
+        nullable=False,
+        default=1,
+        server_default="1",
+    )
+    created_at: Mapped[str] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+    )
 
-    items = relationship("CartItem", back_populates="cart", lazy="selectin")
+    # Configure optimistic locking
+    __mapper_args__ = {"version_id_col": version}
 
-    def __init__(self, **kwargs):
-        for k, v in kwargs.items():
-            setattr(self, k, v)
-        if not hasattr(self, "items") or self.items is None:
-            self.items = []
+    # One-to-many relationship: Cart -> CartItems
+    items: Mapped[list["CartItem"]] = relationship(
+        "CartItem",
+        back_populates="cart",
+        cascade="all, delete-orphan",
+        lazy="selectin",
+    )
 
 
 class CartItem(Base):
+    """SQLAlchemy model for the 'cart_items' table.
+
+    Stores individual products within a cart, with quantity and price constraints.
+    """
+
     __tablename__ = "cart_items"
+    __table_args__ = (
+        CheckConstraint("quantity >= 1", name="ck_cart_items_quantity"),
+        CheckConstraint("price >= 0.01", name="ck_cart_items_price"),
+    )
 
-    id = Column(String, primary_key=True)
-    cart_id = Column(String, ForeignKey("carts.id"), nullable=False)
-    product_id = Column(String, nullable=False)
-    quantity = Column(Integer, nullable=False, default=1)
-    is_substituted = Column(Integer, nullable=False, default=0)  # boolean as int
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        primary_key=True,
+        default=uuid.uuid4,
+    )
+    cart_id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True),
+        ForeignKey("carts.id"),
+        nullable=False,
+    )
+    product_id: Mapped[str] = mapped_column(String(255), nullable=False)
+    product_name: Mapped[str] = mapped_column(String(255), nullable=False)
+    quantity: Mapped[int] = mapped_column(Integer, nullable=False, default=1)
+    price: Mapped[float] = mapped_column(Float, nullable=False)
 
-    cart = relationship("Cart", back_populates="items")
-
-    def __init__(self, **kwargs):
-        for k, v in kwargs.items():
-            setattr(self, k, v)
-        if not hasattr(self, "is_substituted"):
-            self.is_substituted = False
+    # Many-to-one relationship: CartItem -> Cart
+    cart: Mapped["Cart_Model"] = relationship(
+        "Cart_Model",
+        back_populates="items",
+    )

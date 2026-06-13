@@ -1,19 +1,50 @@
-"""
-Stub UserPreference ORM model.
+"""UserPreference model — stores user brand/category/reorder preferences as JSONB."""
 
-⚠️ Dev A will provide the real implementation.
-This stub defines the expected interface so Dev C's code can be imported.
-"""
-from sqlalchemy import Column, String
-from app.models.cart import Base
+import uuid
+from datetime import datetime
+
+from sqlalchemy import DateTime, String
+from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.orm import Mapped, mapped_column
+from sqlalchemy.sql import func
+
+from . import Base
 
 
-class UserPreference(Base):
+class UserPreference_Model(Base):
+    """Represents user preferences with flexible JSONB fields."""
+
     __tablename__ = "user_preferences"
 
-    id = Column(String, primary_key=True)
-    user_id = Column(String, nullable=False, unique=True)
-
-    def __init__(self, **kwargs):
-        for k, v in kwargs.items():
-            setattr(self, k, v)
+    id: Mapped[uuid.UUID] = mapped_column(
+        primary_key=True,
+        default=uuid.uuid4,
+    )
+    user_id: Mapped[str] = mapped_column(
+        String,
+        unique=True,
+        nullable=False,
+    )
+    brand_preferences: Mapped[dict] = mapped_column(
+        JSONB,
+        default=dict,
+        server_default="{}",
+        nullable=False,
+    )
+    category_preferences: Mapped[dict] = mapped_column(
+        JSONB,
+        default=dict,
+        server_default="{}",
+        nullable=False,
+    )
+    reorder_affinity: Mapped[dict] = mapped_column(
+        JSONB,
+        default=dict,
+        server_default="{}",
+        nullable=False,
+    )
+    updated_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=func.now(),
+    )
