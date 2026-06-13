@@ -1,1 +1,40 @@
-# Redis client - to be implemented in task 2.2
+"""Redis connection pool and async dependency for FastAPI."""
+
+from typing import AsyncGenerator
+
+import redis.asyncio as redis
+
+from app.config import settings
+from app.exceptions import AppException, REDIS_CONNECTION_ERROR
+
+pool: redis.ConnectionPool | None = None
+
+
+async def init_redis() -> None:
+    """Initialize the Redis connection pool from settings.REDIS_URL."""
+    global pool
+    pool = redis.ConnectionPool.from_url(settings.REDIS_URL)
+
+
+async def get_redis() -> AsyncGenerator[redis.Redis, None]:
+    """FastAPI dependency that yields a Redis client from the connection pool.
+
+    Wraps connection failures in AppException with REDIS_CONNECTION_ERROR.
+    """
+    client = redis.Redis(connection_pool=pool)
+    try:
+        yield client
+    except redis.ConnectionError as exc:
+        raise AppException(
+            error_code=REDIS_CONNECTION_ERROR[0],
+            message=f"Redis connection failed: {exc}",
+            status_code=REDIS_CONNECTION_ERROR[1],
+        ) from exc
+    except redis.RedisError as exc:
+        raise AppException(
+            error_code=REDIS_CONNECTION_ERROR[0],
+            message=f"Redis error: {exc}",
+            status_code=REDIS_CONNECTION_ERROR[1],
+        ) from exc
+    finally:
+        await client.aclose()
