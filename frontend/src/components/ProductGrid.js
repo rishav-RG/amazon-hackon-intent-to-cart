@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import ProductCard from './ProductCard';
+import SmartSearchBanner from './SmartAssistant/SmartSearchBanner';
 import productsData from '../data/products.json';
 
 const ProductGrid = ({ categoryFilter, onClearFilter, searchQuery, searchCategory }) => {
@@ -144,6 +145,14 @@ const ProductGrid = ({ categoryFilter, onClearFilter, searchQuery, searchCategor
 
   return (
     <div className="flex-1 p-2 sm:p-4">
+      {/* Smart Shopping Assistant Banner */}
+      <SmartSearchBanner
+        onSearch={(query) => {
+          // Dispatch a custom event that the SmartAssistant listens to
+          window.dispatchEvent(new CustomEvent('smart-search', { detail: query }));
+        }}
+      />
+
       {/* Header and Sorting */}
       <div className="flex flex-col space-y-4 sm:space-y-0 sm:flex-row sm:items-center sm:justify-between mb-4 sm:mb-6">
         <div>

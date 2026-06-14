@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
+import { patchCart } from '../services/api';
 
 const Cart = () => {
   const { 
@@ -11,19 +12,74 @@ const Cart = () => {
     clearCart 
   } = useCart();
 
+  // Backend cart state (from Smart Assistant)
+  const [backendCart, setBackendCart] = useState(() => {
+    try {
+      const stored = localStorage.getItem('backendCart');
+      return stored ? JSON.parse(stored) : null;
+    } catch { return null; }
+  });
+
+  const handleBackendCartUpdate = useCallback(() => {
+    try {
+      const stored = localStorage.getItem('backendCart');
+      setBackendCart(stored ? JSON.parse(stored) : null);
+    } catch { setBackendCart(null); }
+  }, []);
+
+  useEffect(() => {
+    window.addEventListener('backend-cart-updated', handleBackendCartUpdate);
+    return () => window.removeEventListener('backend-cart-updated', handleBackendCartUpdate);
+  }, [handleBackendCartUpdate]);
+
+  const handleRemoveBackendItem = async (productId) => {
+    if (!backendCart) return;
+    try {
+      const res = await patchCart(
+        [{ type: 'remove', productId }],
+        backendCart.version
+      );
+      localStorage.setItem('backendCart', JSON.stringify(res));
+      setBackendCart(res);
+    } catch (err) {
+      console.error('Failed to remove item:', err);
+    }
+  };
+
+  const handleUpdateBackendQuantity = async (productId, newQuantity) => {
+    if (!backendCart) return;
+    try {
+      const op = newQuantity <= 0
+        ? { type: 'remove', productId }
+        : { type: 'update', productId, quantity: newQuantity };
+      const res = await patchCart([op], backendCart.version);
+      localStorage.setItem('backendCart', JSON.stringify(res));
+      setBackendCart(res);
+    } catch (err) {
+      console.error('Failed to update quantity:', err);
+    }
+  };
+
+  const handleClearBackendCart = () => {
+    localStorage.removeItem('backendCart');
+    setBackendCart(null);
+  };
+
   const formatPrice = (price) => {
-    return new Intl.NumberFormat('en-US', {
+    return new Intl.NumberFormat('en-IN', {
       style: 'currency',
-      currency: 'USD'
+      currency: 'INR'
     }).format(price);
   };
 
-  const subtotal = getCartTotal();
-  const tax = subtotal * 0.08; // 8% tax
-  const shipping = subtotal > 35 ? 0 : 5.99; // Free shipping over $35
+  const subtotal = getCartTotal() + (backendCart?.total || 0);
+  const tax = subtotal * 0.08;
+  const shipping = subtotal > 500 ? 0 : 49;
   const total = subtotal + tax + shipping;
 
-  if (cartItems.length === 0) {
+  const hasItems = cartItems.length > 0 || (backendCart?.items?.length > 0);
+
+  if (!hasItems) {
     return (
       <div className="min-h-screen bg-gray-50 py-4 sm:py-8">
         <div className="max-w-4xl mx-auto px-4">
@@ -66,14 +122,41 @@ const Cart = () => {
               <div className="p-4 sm:p-6 border-b border-gray-200 flex justify-between items-center">
                 <h2 className="text-base sm:text-lg font-semibold text-gray-900">Cart Items</h2>
                 <button
-                  onClick={clearCart}
+                  onClick={() => { clearCart(); handleClearBackendCart(); }}
                   className="text-red-600 hover:text-red-800 text-sm font-medium"
                 >
                   Clear Cart
                 </button>
               </div>
 
-              {/* Cart Items List */}
+              {/* Backend Cart Items (from Smart Assistant) */}
+              {backendCart && backendCart.items && backendCart.items.length > 0 && (
+                <div>
+                  <div className="px-4 sm:px-6 pt-4 pb-2">
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm font-semibold text-purple-700 bg-purple-100 px-2 py-0.5 rounded">
+                        🛒 Smart Bundle
+                      </span>
+                      <span className="text-xs text-gray-500">
+                        {backendCart.items.length} items • v{backendCart.version}
+                      </span>
+                    </div>
+                  </div>
+                  <div className="divide-y divide-gray-200">
+                    {backendCart.items.map((item) => (
+                      <BackendCartItem
+                        key={item.productId}
+                        item={item}
+                        onUpdateQuantity={handleUpdateBackendQuantity}
+                        onRemove={handleRemoveBackendItem}
+                        formatPrice={formatPrice}
+                      />
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Local Cart Items (from product browsing) */}
               <div className="divide-y divide-gray-200">
                 {cartItems.map((item) => (
                   <CartItem
@@ -144,7 +227,7 @@ const Cart = () => {
               ) : (
                 <div className="bg-blue-50 border border-blue-200 rounded-md p-3 mb-4">
                   <p className="text-xs sm:text-sm text-blue-800">
-                    Add {formatPrice(35 - subtotal)} more to qualify for FREE shipping
+                    Add {formatPrice(500 - subtotal)} more to qualify for FREE shipping
                   </p>
                 </div>
               )}
@@ -235,6 +318,95 @@ const CartItem = ({ item, updateQuantity, removeFromCart, formatPrice }) => {
               
               <button
                 onClick={() => removeFromCart(item.id)}
+                className="text-red-600 hover:text-red-800 text-sm font-medium"
+              >
+                Remove
+              </button>
+            </div>
+
+            {/* Price */}
+            <div className="text-right">
+              <div className="text-base sm:text-lg font-semibold text-gray-900">
+                {formatPrice(item.price * item.quantity)}
+              </div>
+              <div className="text-xs sm:text-sm text-gray-600">
+                {formatPrice(item.price)} each
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+// Backend Cart Item Component (from Smart Assistant)
+const BackendCartItem = ({ item, onUpdateQuantity, onRemove, formatPrice }) => {
+  return (
+    <div className="p-4 sm:p-6">
+      <div className="flex flex-col sm:flex-row sm:items-start space-y-3 sm:space-y-0 sm:space-x-4">
+        {/* Product Image */}
+        <div className="flex-shrink-0 self-center sm:self-start">
+          <img
+            src={item.imageUrl || 'https://via.placeholder.com/96x96?text=No+Image'}
+            alt={item.productName}
+            className="w-20 h-20 sm:w-24 sm:h-24 object-contain rounded-md bg-white border border-gray-100"
+            onError={(e) => {
+              e.target.src = 'https://via.placeholder.com/96x96?text=No+Image';
+            }}
+          />
+        </div>
+
+        {/* Product Details */}
+        <div className="flex-1 min-w-0">
+          <h3 className="text-sm font-medium text-gray-900 mb-1 line-clamp-2">
+            {item.productName}
+          </h3>
+
+          {/* Brand & Category */}
+          <div className="flex flex-wrap items-center gap-2 mb-2">
+            {item.brand && (
+              <span className="text-xs text-gray-600 bg-gray-100 px-1.5 py-0.5 rounded">
+                {item.brand}
+              </span>
+            )}
+            {item.unit && (
+              <span className="text-xs text-gray-500">{item.unit}</span>
+            )}
+            {item.category && (
+              <span className="text-xs text-gray-400">{item.category}</span>
+            )}
+          </div>
+          
+          <div className="flex items-center mb-3 text-xs sm:text-sm">
+            <span className="text-green-600 font-medium">In Stock</span>
+            <span className="mx-2 text-gray-300">•</span>
+            <span className="text-blue-600">Smart Bundle Item</span>
+          </div>
+
+          <div className="flex flex-col space-y-3 sm:space-y-0 sm:flex-row sm:items-center sm:justify-between">
+            {/* Quantity Controls */}
+            <div className="flex items-center justify-between sm:justify-start sm:space-x-4">
+              <div className="flex items-center border border-gray-300 rounded">
+                <button
+                  onClick={() => onUpdateQuantity(item.productId, item.quantity - 1)}
+                  className="px-2 sm:px-3 py-1 hover:bg-gray-100 text-sm"
+                >
+                  -
+                </button>
+                <span className="px-2 sm:px-3 py-1 border-l border-r border-gray-300 text-sm">
+                  {item.quantity}
+                </span>
+                <button
+                  onClick={() => onUpdateQuantity(item.productId, item.quantity + 1)}
+                  className="px-2 sm:px-3 py-1 hover:bg-gray-100 text-sm"
+                >
+                  +
+                </button>
+              </div>
+              
+              <button
+                onClick={() => onRemove(item.productId)}
                 className="text-red-600 hover:text-red-800 text-sm font-medium"
               >
                 Remove

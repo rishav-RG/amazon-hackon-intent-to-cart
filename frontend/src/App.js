@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { CartProvider } from './context/CartContext';
 import Navbar from './components/Navbar';
 import Footer from './components/Footer';
+import SmartAssistant from './components/SmartAssistant';
 import Home from './pages/Home';
 import Cart from './pages/Cart';
 import TodaysDeals from './pages/TodaysDeals';
@@ -37,6 +38,7 @@ function App() {
             </Routes>
           </main>
           <Footer />
+          <SmartAssistant />
         </div>
       </Router>
     </CartProvider>

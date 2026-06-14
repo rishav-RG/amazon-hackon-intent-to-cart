@@ -36,6 +36,10 @@ class CartItemResponse(BaseModel):
     productName: str = ""
     quantity: int
     price: float = 0.0
+    imageUrl: str = ""
+    brand: str = ""
+    category: str = ""
+    unit: str = ""
     isSubstituted: bool = False
 
 

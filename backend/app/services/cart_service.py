@@ -91,6 +91,7 @@ class CartService:
                     "productName": item.product_name,
                     "quantity": item.quantity,
                     "price": item.price,
+                    **self._get_product_metadata(item.product_id),
                 }
                 for item in cart.items
             ],
@@ -120,6 +121,19 @@ class CartService:
         )
         self.db.add(item)
         cart.items.append(item)
+
+    def _get_product_metadata(self, product_id: str) -> dict:
+        """Get additional product metadata (image, brand, category) from catalog."""
+        catalog = get_product_catalog()
+        product = catalog.get_product_by_id(product_id)
+        if product:
+            return {
+                "imageUrl": product.get("image_url", ""),
+                "brand": product.get("brand", ""),
+                "category": product.get("category", ""),
+                "unit": product.get("unit", ""),
+            }
+        return {"imageUrl": "", "brand": "", "category": "", "unit": ""}
 
     async def _remove_item(self, cart: Cart_Model, product_id: str) -> None:
         cart.items = [i for i in cart.items if i.product_id != product_id]
