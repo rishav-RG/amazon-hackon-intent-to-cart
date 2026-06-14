@@ -143,12 +143,26 @@ const SmartAssistant = () => {
   const handleSelectBundle = async (bundle) => {
     setAddingBundle(bundle.bundle_id);
     try {
+      // First, clear any existing items by sending remove ops for current cart
+      const existingCart = localStorage.getItem('backendCart');
+      if (existingCart) {
+        const parsed = JSON.parse(existingCart);
+        if (parsed.items && parsed.items.length > 0) {
+          const removeOps = parsed.items.map((item) => ({
+            type: 'remove',
+            productId: item.productId,
+          }));
+          await patchCart(removeOps, parsed.version);
+        }
+      }
+
+      // Now add the selected bundle items to a fresh cart
       const operations = bundle.items.map((item) => ({
         type: 'add',
         productId: item.product_id,
         quantity: item.quantity,
       }));
-      const cartRes = await patchCart(operations);
+      const cartRes = await patchCart(operations, null);
       // Store backend cart in localStorage for the Cart page to pick up
       localStorage.setItem('backendCart', JSON.stringify(cartRes));
       window.dispatchEvent(new Event('backend-cart-updated'));
@@ -308,7 +322,7 @@ const SmartAssistant = () => {
 
       {/* Chat panel */}
       {isOpen && (
-        <div className="fixed bottom-6 right-6 z-50 w-[380px] max-w-[calc(100vw-2rem)] h-[560px] max-h-[calc(100vh-4rem)] bg-white rounded-2xl shadow-2xl border border-gray-200 flex flex-col overflow-hidden">
+        <div className="fixed bottom-6 right-6 z-50 w-[480px] max-w-[calc(100vw-2rem)] h-[600px] max-h-[calc(100vh-4rem)] bg-white rounded-2xl shadow-2xl border border-gray-200 flex flex-col overflow-hidden">
           {/* Header */}
           <div className="bg-gray-900 text-white px-4 py-3 flex items-center justify-between flex-shrink-0">
             <div className="flex items-center gap-2">

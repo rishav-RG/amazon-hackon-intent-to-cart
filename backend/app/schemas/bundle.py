@@ -26,6 +26,7 @@ class BundleItemSchema(BaseModel):
     category: str
     quantity: int
     unit_price: float
+    image_url: str = ""
     
     # Runtime-only fields (not in database)
     is_substituted: bool = False

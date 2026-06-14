@@ -217,6 +217,7 @@ class BundleGenerator:
                 category=prod["category"],
                 quantity=quantity,
                 unit_price=prod["price"],
+                image_url=prod.get("image_url", ""),
                 # Runtime fields set by adapters later
                 eta_minutes=0,  # Will be set by ETAAdapter
                 eta_label="",    # Will be set by ETAAdapter
