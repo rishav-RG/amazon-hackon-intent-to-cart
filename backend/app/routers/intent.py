@@ -111,6 +111,11 @@ async def classify_intent(
                 "intent_type": result.intent_type,
                 "answered_count": 0,
                 "current_question": clarification_question,
+                "answered_questions": [],
+                "shopping_theme": result.shopping_theme,
+                "entities": result.entities,
+                "constraints": result.constraints,
+                "confidence": result.confidence,
             })
             try:
                 session_key = f"clarification:session:{request.session_id}"

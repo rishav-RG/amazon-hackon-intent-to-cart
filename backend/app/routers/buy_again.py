@@ -6,7 +6,6 @@ from app.database import get_db
 from app.utils.user import get_current_user_id
 from app.utils.cache import cache_get, cache_set
 from app.models.cart import Cart_Model, CartItem
-from app.adapters.catalog_adapter import ProductCatalogAdapter
 from app.schemas.checkout import BuyAgainItem
 
 router = APIRouter(prefix="/v1", tags=["buy-again"])
@@ -28,27 +27,27 @@ async def buy_again(
 
     # DB fallback: Cart join CartItem for checked-out carts
     result = await db.execute(
-        select(CartItem)
+        select(CartItem, Cart_Model.created_at)
         .join(Cart_Model, CartItem.cart_id == Cart_Model.id)
         .where(Cart_Model.user_id == user_id, Cart_Model.status == "checked_out")
     )
-    items = result.scalars().all()
+    rows = result.all()
 
-    if not items:
+    if not rows:
         return []
 
-    # Enrich via ProductCatalogAdapter
-    product_ids = list({item.product_id for item in items})
-    catalog_data = await ProductCatalogAdapter.get_products(product_ids)
+    # Deduplicate by product_id, keep latest order timestamp
+    seen: dict[str, dict] = {}
+    for item, cart_created_at in rows:
+        pid = item.product_id
+        if pid not in seen:
+            seen[pid] = {
+                "productId": pid,
+                "productName": item.product_name or f"Product {pid}",
+                "lastOrderedAt": str(cart_created_at) if cart_created_at else "",
+            }
 
-    buy_again_items = [
-        {
-            "productId": pid,
-            "productName": catalog_data.get(pid, {}).get("name", "Unknown"),
-            "lastOrderedAt": catalog_data.get(pid, {}).get("lastOrderedAt", ""),
-        }
-        for pid in product_ids
-    ]
+    buy_again_items = list(seen.values())
 
     # Populate cache before returning
     await cache_set(cache_key, buy_again_items, BUY_AGAIN_TTL)

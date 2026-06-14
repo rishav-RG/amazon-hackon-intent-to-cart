@@ -5,6 +5,7 @@ from sqlalchemy import select
 from app.models.cart import Cart_Model, CartItem
 from app.utils.cache import cache_get, cache_set, cache_delete
 from app.events import emit
+from app.services.product_catalog import get_product_catalog
 
 CART_CACHE_TTL = 86400  # 24 hours
 
@@ -87,17 +88,36 @@ class CartService:
             "items": [
                 {
                     "productId": item.product_id,
+                    "productName": item.product_name,
                     "quantity": item.quantity,
-                    "price": getattr(item, "price", 0),
+                    "price": item.price,
                 }
                 for item in cart.items
             ],
-            "total": sum(getattr(item, "price", 0) * item.quantity for item in cart.items),
+            "total": sum(item.price * item.quantity for item in cart.items),
             "status": cart.status,
         }
 
     async def _add_item(self, cart: Cart_Model, product_id: str, quantity: int) -> None:
-        item = CartItem(cart_id=cart.id, product_id=product_id, quantity=quantity, product_name="", price=0)
+        """Add item to cart, resolving product_name and price from the catalog."""
+        catalog = get_product_catalog()
+        product = catalog.get_product_by_id(product_id)
+
+        if product:
+            product_name = product.get("name", "Unknown Product")
+            # Prefer discount_price if available, fall back to price
+            price = float(product.get("discount_price") or product.get("price", 0.01))
+        else:
+            product_name = f"Product {product_id}"
+            price = 0.01  # Minimum allowed by DB constraint
+
+        item = CartItem(
+            cart_id=cart.id,
+            product_id=product_id,
+            product_name=product_name,
+            quantity=quantity,
+            price=price,
+        )
         self.db.add(item)
         cart.items.append(item)
 

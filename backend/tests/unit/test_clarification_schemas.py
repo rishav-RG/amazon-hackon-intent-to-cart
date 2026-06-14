@@ -6,6 +6,7 @@ import pytest
 from pydantic import ValidationError
 
 from app.schemas.clarification import ClarificationRequest, ClarificationResponse
+from app.schemas.bundle_context import BundleContext
 
 
 # --- ClarificationRequest Tests ---
@@ -113,20 +114,38 @@ class TestClarificationResponse:
             complete=False,
             next_question="What size do you need?",
             questions_remaining=2,
+            answered_questions=[],
         )
         assert resp.complete is False
         assert resp.next_question == "What size do you need?"
         assert resp.questions_remaining == 2
+        assert resp.answered_questions == []
 
     def test_complete_response(self):
         resp = ClarificationResponse(
             complete=True,
             next_question=None,
             questions_remaining=0,
+            answered_questions=[
+                {"question": "What size do you need?", "answer": "Large"},
+            ],
+            bundle_context=BundleContext(
+                intent_id=str(uuid.uuid4()),
+                intent_type="add_to_cart",
+                resolved_category="dairy_and_bakery",
+                confirmed_entities=[],
+                semantic_query="milk bread",
+                category_query="dairy bakery",
+                product_query_hints=["milk", "bread"],
+            ),
         )
         assert resp.complete is True
         assert resp.next_question is None
         assert resp.questions_remaining == 0
+        assert resp.answered_questions[0].question == "What size do you need?"
+        assert resp.answered_questions[0].answer == "Large"
+        assert resp.bundle_context is not None
+        assert resp.bundle_context.resolved_category == "dairy_and_bakery"
 
     def test_complete_true_with_question_raises(self):
         """Requirement 24.3: complete=True requires next_question=None."""
@@ -191,21 +210,40 @@ class TestClarificationResponseRoundTrip:
             complete=True,
             next_question=None,
             questions_remaining=0,
+            answered_questions=[
+                {"question": "What size do you need?", "answer": "Large"},
+            ],
+            bundle_context=BundleContext(
+                intent_id=str(uuid.uuid4()),
+                intent_type="add_to_cart",
+                resolved_category="dairy_and_bakery",
+                confirmed_entities=[],
+                semantic_query="milk bread",
+                category_query="dairy bakery",
+                product_query_hints=["milk", "bread"],
+            ),
         )
         data = original.model_dump()
         reconstructed = ClarificationResponse(**data)
         assert reconstructed.complete == original.complete
         assert reconstructed.next_question == original.next_question
         assert reconstructed.questions_remaining == original.questions_remaining
+        assert reconstructed.answered_questions == original.answered_questions
+        assert reconstructed.bundle_context == original.bundle_context
 
     def test_round_trip_incomplete(self):
         original = ClarificationResponse(
             complete=False,
             next_question="What brand do you prefer?",
             questions_remaining=2,
+            answered_questions=[
+                {"question": "What category does the product belong to?", "answer": "Snacks"},
+            ],
         )
         data = original.model_dump()
         reconstructed = ClarificationResponse(**data)
         assert reconstructed.complete == original.complete
         assert reconstructed.next_question == original.next_question
         assert reconstructed.questions_remaining == original.questions_remaining
+        assert reconstructed.answered_questions == original.answered_questions
+        assert reconstructed.bundle_context is None

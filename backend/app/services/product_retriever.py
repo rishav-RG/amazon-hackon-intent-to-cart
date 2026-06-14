@@ -67,6 +67,7 @@ def retrieve(
     entities: list[str],
     category: str,
     constraints: Optional[dict] = None,
+    semantic_query: Optional[str] = None,
     top_k: int = 12,
 ) -> Optional[list[dict]]:
     """
@@ -88,8 +89,11 @@ def retrieve(
         logger.warning("ProductCatalog unavailable: %s — retriever skipped", exc)
         return None
 
-    # Build a query string from entities (fall back to the category name)
-    query = " ".join(entities).strip() if entities else category.replace("_", " ")
+    # Build a query string from semantic hints first, then entities, then category
+    if semantic_query and semantic_query.strip():
+        query = semantic_query.strip()
+    else:
+        query = " ".join(entities).strip() if entities else category.replace("_", " ")
 
     try:
         # search_combined = semantic search + category filter (already exists)

@@ -33,7 +33,9 @@ class CartPatchRequest(BaseModel):
 
 class CartItemResponse(BaseModel):
     productId: str
+    productName: str = ""
     quantity: int
+    price: float = 0.0
     isSubstituted: bool = False
 
 

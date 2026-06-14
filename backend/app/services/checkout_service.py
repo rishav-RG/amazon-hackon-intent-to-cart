@@ -1,4 +1,5 @@
 import asyncio
+import uuid
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
@@ -41,15 +42,21 @@ class CheckoutService:
         # Step 3: Inventory check
         product_ids = [item.product_id for item in cart.items]
         stock_result = await InventoryAdapter.check_batch(product_ids)
+        # stock_result is dict: {product_id: {"available": bool, "warehouse": str}}
         oos_items = [
-            item for item in stock_result
-            if not item["in_stock"] and not item.get("substitutes")
+            {"productId": pid, "availableQuantity": 0, "substitutes": []}
+            for pid, info in stock_result.items()
+            if not info.get("available", True)
         ]
         if oos_items:
             raise ItemsOutOfStockError(oos_items)
 
         # Step 4: Place order
-        order_result = await OrderAdapter.place_order(user_id, cart.items)
+        order_items = [
+            {"product_id": item.product_id, "quantity": item.quantity, "unit_price": item.price}
+            for item in cart.items
+        ]
+        order_result = await OrderAdapter.place_order(user_id, order_items)
 
         # Step 5: Update cart status
         cart.status = "checked_out"
@@ -60,21 +67,22 @@ class CheckoutService:
         asyncio.create_task(self._update_preferences(user_id, cart.items))
 
         # Step 7: Emit event
+        order_id = order_result.get("order_id", str(uuid.uuid4()))
         await emit("order.placed", {
-            "order_id": order_result["orderId"],
+            "order_id": order_id,
             "cart_id": str(cart_id),
             "user_id": user_id,
             "item_count": len(cart.items),
         })
 
         return {
-            "orderId": order_result["orderId"],
+            "orderId": order_id,
             "status": "confirmed",
             "items": [
-                {"productId": i.product_id, "quantity": i.quantity, "price": 0.0}
+                {"productId": i.product_id, "quantity": i.quantity, "price": i.price}
                 for i in cart.items
             ],
-            "total": order_result.get("total", 0.0),
+            "total": sum(i.price * i.quantity for i in cart.items),
         }
 
     async def _update_preferences(self, user_id: str, items: list) -> None:

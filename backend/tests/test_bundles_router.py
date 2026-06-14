@@ -17,7 +17,9 @@ from app.exceptions import AppException
 @pytest.fixture
 def mock_db():
     """Mock database session."""
-    return AsyncMock()
+    mock = AsyncMock()
+    mock.add = MagicMock()
+    return mock
 
 
 @pytest.fixture
@@ -178,6 +180,106 @@ async def test_get_bundles_full_pipeline(
 
 @pytest.mark.asyncio
 @patch('app.routers.bundles.cache_get')
+@patch('app.routers.bundles.PersonalizationService')
+@patch('app.routers.bundles.BundleGenerator')
+@patch('app.routers.bundles.InventoryAdapter')
+@patch('app.routers.bundles.ETAAdapter')
+@patch('app.routers.bundles.SubstitutionEngine')
+@patch('app.routers.bundles.RankingEngine')
+@patch('app.routers.bundles.cache_set')
+@patch('app.routers.bundles.emit')
+async def test_get_bundles_uses_enriched_bundle_context(
+    mock_emit,
+    mock_cache_set,
+    mock_ranking,
+    mock_substitution,
+    mock_eta,
+    mock_inventory,
+    mock_generator,
+    mock_personalization,
+    mock_cache_get,
+    mock_db,
+    test_intent,
+):
+    """GET /v1/bundles/{intent_id} should prefer enriched bundle_context when present."""
+    mock_result = MagicMock()
+    mock_result.scalar_one_or_none.return_value = test_intent
+    mock_db.execute = AsyncMock(return_value=mock_result)
+    mock_db.flush = AsyncMock()
+    mock_db.commit = AsyncMock()
+
+    mock_cache_get.side_effect = [
+        {
+            "intent_id": str(test_intent.id),
+            "intent_type": "add_to_cart",
+            "shopping_theme": None,
+            "resolved_category": "dairy_and_bakery",
+            "confirmed_entities": [
+                {
+                    "raw": "milk",
+                    "canonical": "milk",
+                    "brand": "amul",
+                    "quantity": 5,
+                    "unit": "items",
+                }
+            ],
+            "constraints": {
+                "quantity": 5,
+                "budget": None,
+                "brand": "amul",
+                "diet": None,
+            },
+            "semantic_query": "amul milk breakfast groceries",
+            "category_query": "dairy bakery breakfast groceries",
+            "product_query_hints": ["milk", "amul"],
+        },
+        None,
+    ]
+
+    from app.services.personalization_service import PersonalizationSignals
+    mock_personalization.get_signals = AsyncMock(return_value=PersonalizationSignals())
+
+    from app.schemas.bundle import BundleSchema, BundleItemSchema
+    mock_bundles = [
+        BundleSchema(
+            bundle_type="budget",
+            bundle_name="Dairy and Bakery — Budget",
+            intent_type="dairy_and_bakery",
+            items=[
+                BundleItemSchema(
+                    product_id="P1",
+                    name="Milk",
+                    brand="Amul",
+                    category="dairy",
+                    quantity=1,
+                    unit_price=45.0,
+                    eta_minutes=0,
+                    eta_label="",
+                    warehouse="",
+                )
+            ],
+            total_price=45.0,
+        )
+    ]
+    mock_generator.generate.return_value = mock_bundles
+    mock_inventory.check_batch = AsyncMock(return_value={"P1": {"warehouse": "WH-A"}})
+    mock_eta.get_batch = AsyncMock(return_value={"P1": {"eta_minutes": 30, "eta_label": "In 30 min"}})
+    mock_substitution.apply = AsyncMock(return_value=mock_bundles)
+    mock_ranking.rank.return_value = mock_bundles
+    mock_cache_set.return_value = None
+    mock_emit.return_value = None
+
+    result = await get_bundles(test_intent.id, test_intent.user_id, mock_db)
+
+    assert isinstance(result, BundleListResponse)
+    mock_generator.generate.assert_called_once()
+    assert mock_generator.generate.call_args.args[0] == "dairy_and_bakery"
+    mock_inventory.check_batch.assert_called_once()
+    mock_emit.assert_called_once()
+
+
+@pytest.mark.asyncio
+@patch('app.routers.bundles.cache_get')
 async def test_get_bundles_cache_hit(mock_cache_get, mock_db, test_intent):
     """GET /v1/bundles/{intent_id} returns cached data when available."""
     # Mock DB query
@@ -213,7 +315,21 @@ async def test_get_bundles_cache_hit(mock_cache_get, mock_db, test_intent):
 @pytest.mark.asyncio
 @patch('app.routers.bundles.cache_get')
 @patch('app.routers.bundles.PersonalizationService')
+@patch('app.routers.bundles.BundleGenerator')
+@patch('app.routers.bundles.InventoryAdapter')
+@patch('app.routers.bundles.ETAAdapter')
+@patch('app.routers.bundles.SubstitutionEngine')
+@patch('app.routers.bundles.RankingEngine')
+@patch('app.routers.bundles.cache_set')
+@patch('app.routers.bundles.emit')
 async def test_get_bundles_personalization_error_handling(
+    mock_emit,
+    mock_cache_set,
+    mock_ranking,
+    mock_substitution,
+    mock_eta,
+    mock_inventory,
+    mock_generator,
     mock_personalization,
     mock_cache_get,
     mock_db,
@@ -231,10 +347,40 @@ async def test_get_bundles_personalization_error_handling(
     # Mock personalization failure
     mock_personalization.get_signals = AsyncMock(side_effect=Exception("DB error"))
     
-    # Should continue without raising exception
-    # (Will fail later in pipeline due to missing mocks, but that's expected)
-    with pytest.raises(Exception):
-        await get_bundles(test_intent.id, test_intent.user_id, mock_db)
+    from app.schemas.bundle import BundleSchema, BundleItemSchema
+    mock_bundles = [
+        BundleSchema(
+            bundle_type="budget",
+            bundle_name="Meal Preparation — Budget",
+            intent_type="meal_preparation",
+            items=[
+                BundleItemSchema(
+                    product_id="P1",
+                    name="Pasta",
+                    brand="Barilla",
+                    category="pasta",
+                    quantity=1,
+                    unit_price=3.99,
+                    eta_minutes=0,
+                    eta_label="",
+                    warehouse="",
+                )
+            ],
+            total_price=3.99,
+        )
+    ]
+    mock_generator.generate.return_value = mock_bundles
+    mock_inventory.check_batch = AsyncMock(return_value={"P1": {"warehouse": "WH-A"}})
+    mock_eta.get_batch = AsyncMock(return_value={"P1": {"eta_minutes": 30, "eta_label": "In 30 min"}})
+    mock_substitution.apply = AsyncMock(return_value=mock_bundles)
+    mock_ranking.rank.return_value = mock_bundles
+    mock_cache_set.return_value = None
+    mock_emit.return_value = None
+
+    result = await get_bundles(test_intent.id, test_intent.user_id, mock_db)
+
+    assert result is not None
+    mock_personalization.get_signals.assert_called_once()
 
 
 @pytest.mark.asyncio

@@ -15,13 +15,20 @@ from sqlalchemy.ext.asyncio import AsyncSession
 
 import redis.asyncio as redis
 
+from app.services.bundle_context_builder import BundleContextBuilder
+
 from app.database import get_db
 from app.dependencies import get_current_user_id
 from app.exceptions import AppException, INTENT_NOT_FOUND, SESSION_EXPIRED
 from app.models.clarification import Clarification_Model
 from app.models.intent import Intent_Model
 from app.redis_client import get_redis
-from app.schemas.clarification import ClarificationRequest, ClarificationResponse, ClarificationQA
+from app.utils.cache import cache_set
+from app.schemas.clarification import (
+    ClarificationAnswer,
+    ClarificationRequest,
+    ClarificationResponse,
+)
 from app.services.clarification_engine import get_next_question, MAX_CLARIFICATION_QUESTIONS
 
 logger = logging.getLogger(__name__)
@@ -71,6 +78,26 @@ async def post_clarification(
     session_data = json.loads(session_raw)
     answered_count: int = session_data["answered_count"]
     current_question: str = session_data["current_question"]
+    if "answered_questions" in session_data:
+        answered_questions_data = list(session_data["answered_questions"])
+        history_loaded_from_session = True
+    else:
+        clarifications_result = await db.execute(
+            select(Clarification_Model)
+            .where(Clarification_Model.intent_id == request.intent_id)
+            .order_by(Clarification_Model.timestamp.asc(), Clarification_Model.id.asc())
+        )
+        answered_questions_data = [
+            {"question": item.question, "answer": item.answer}
+            for item in clarifications_result.scalars().all()
+        ]
+        history_loaded_from_session = False
+
+    if history_loaded_from_session:
+        answered_questions_data.append({
+            "question": current_question,
+            "answer": request.answer,
+        })
 
     # 4. Persist clarification row
     clarification = Clarification_Model(
@@ -85,7 +112,7 @@ async def post_clarification(
     try:
         from app.services.clarification_engine import get_next_question_smart
         # Collect previous questions from session
-        previous_questions = [current_question]
+        previous_questions = [item["question"] for item in answered_questions_data]
         next_question = await get_next_question_smart(
             user_text=intent.raw_text,
             intent_type=intent.intent_type,
@@ -104,6 +131,7 @@ async def post_clarification(
         updated_session = json.dumps({
             "answered_count": answered_count + 1,
             "current_question": next_question,
+            "answered_questions": answered_questions_data,
         })
         await redis_client.set(session_key, updated_session, ex=_SESSION_TTL_SECONDS)
 
@@ -111,36 +139,37 @@ async def post_clarification(
             complete=False,
             next_question=next_question,
             questions_remaining=MAX_CLARIFICATION_QUESTIONS - (answered_count + 1),
+            answered_questions=[
+                ClarificationAnswer(question=item["question"], answer=item["answer"])
+                for item in answered_questions_data
+            ],
         )
 
-    # 7. Clarification complete — clean up session, collect all answers, and emit event
-    try:
-        await redis_client.delete(session_key)
-    except Exception as exc:
-        logger.warning("Failed to delete clarification session '%s': %s", session_key, exc)
+    # 7. Clarification complete — clean up session and emit event
+    await redis_client.delete(session_key)
 
-    # Fetch all Q&A pairs for this intent from the database
-    all_clarifications = await db.execute(
-        select(Clarification_Model)
-        .where(Clarification_Model.intent_id == request.intent_id)
-        .order_by(Clarification_Model.timestamp)
+    # NEW: Build the consolidated context
+    bundle_context = await BundleContextBuilder.build(intent, answered_questions_data)
+    
+    # NEW: Cache for the bundle generation phase (e.g. 30 minute TTL)
+    await cache_set(
+        f"bundle_context:{request.intent_id}",
+        bundle_context.model_dump(mode="json"),
+        1800,
     )
-    qa_rows = all_clarifications.scalars().all()
+
     answered_questions = [
-        ClarificationQA(question=row.question, answer=row.answer)
-        for row in qa_rows
+        ClarificationAnswer(question=item["question"], answer=item["answer"])
+        for item in answered_questions_data
     ]
 
-    # Fire-and-forget event stub (Event_Bus owned by Dev C)
-    logger.info(
-        "clarification.answered event emitted for intent_id=%s, session_id=%s",
-        request.intent_id,
-        request.session_id,
-    )
+    # Fire-and-forget event stub
+    logger.info("clarification.answered event emitted for intent_id=%s", request.intent_id)
 
     return ClarificationResponse(
         complete=True,
         next_question=None,
         questions_remaining=0,
         answered_questions=answered_questions,
+        bundle_context=bundle_context,
     )
