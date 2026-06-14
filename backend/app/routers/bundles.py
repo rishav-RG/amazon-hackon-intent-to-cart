@@ -28,6 +28,7 @@ from app.services.personalization_service import PersonalizationService
 from app.services.bundle_generator import BundleGenerator
 from app.services.ranking_engine import RankingEngine
 from app.services.substitution_engine import SubstitutionEngine
+from app.services import category_resolver, product_retriever
 from app.adapters.inventory_adapter import InventoryAdapter
 from app.adapters.eta_adapter import ETAAdapter
 from app.utils.cache import cache_get, cache_set
@@ -94,10 +95,40 @@ async def get_bundles(
     
     intent_type = intent.intent_type
     
-    # Step 2: Redis cache check
+    # ── Hybrid layer: resolve category from shopping_theme, retrieve products ──
+    # Backward-compatible: if shopping_theme is None (old intents / LLM fallback),
+    # resolved_category stays None and retrieved_products stays None → the
+    # BundleGenerator uses the original MOCK_CATALOG path unchanged.
+    shopping_theme = getattr(intent, "shopping_theme", None)
+    intent_entities = getattr(intent, "entities", None) or []
+    intent_constraints = getattr(intent, "constraints", None) or {}
+
+    resolved_category = None
+    retrieved_products = None
+    if shopping_theme:
+        try:
+            resolved_category = category_resolver.resolve(shopping_theme)
+            retrieved_products = product_retriever.retrieve(
+                entities=intent_entities,
+                category=resolved_category,
+                constraints=intent_constraints,
+            )
+        except Exception as exc:
+            logger.warning(
+                "Hybrid retrieval failed (theme=%s): %s — using MOCK_CATALOG",
+                shopping_theme, exc,
+            )
+            retrieved_products = None
+
+    # Category used for bundle generation/naming: resolved category if we have
+    # retrieved products, else the original intent_type (MOCK_CATALOG path).
+    generation_category = resolved_category if retrieved_products else intent_type
+    
+    # Step 2: Redis cache check (key includes theme to avoid old/new collision)
     cache_hit = False
     user_id_hash = hashlib.md5(user_id.encode()).hexdigest()[:8]
-    cache_key = f"bundle:{intent_type}:{user_id_hash}"
+    theme_part = shopping_theme or "none"
+    cache_key = f"bundle:{generation_category}:{theme_part}:{user_id_hash}"
     
     try:
         cached_data = await cache_get(cache_key)
@@ -122,9 +153,11 @@ async def get_bundles(
         from app.services.personalization_service import PersonalizationSignals
         signals = PersonalizationSignals()
     
-    # Step 4: Generate 3 bundles
+    # Step 4: Generate 3 bundles (from retrieved products if available, else MOCK_CATALOG)
     try:
-        bundles = BundleGenerator.generate(intent_type, user_id, signals)
+        bundles = BundleGenerator.generate(
+            generation_category, user_id, signals, products=retrieved_products
+        )
     except Exception as exc:
         logger.error(f"Bundle generation failed for intent {intent_type}: {exc}")
         raise HTTPException(
@@ -180,8 +213,9 @@ async def get_bundles(
         logger.warning("Proceeding without substitutions")
     
     # Step 8: Rank bundles by weighted score
+    # Use generation_category so intent-match scoring aligns with bundle.intent_type
     try:
-        ranked_bundles = RankingEngine.rank(bundles, intent_type, signals)
+        ranked_bundles = RankingEngine.rank(bundles, generation_category, signals)
     except Exception as exc:
         logger.error(f"Ranking engine failed: {exc}")
         raise HTTPException(

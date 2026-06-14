@@ -293,3 +293,121 @@ async def generate_clarification_question(
         pass
 
     return question
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# 3. Hybrid Structured Shopping-Intent Parser (NEW)
+# ──────────────────────────────────────────────────────────────────────────────
+
+# The LLM acts as a STRUCTURED PARSER, not an open-ended intent discoverer.
+# It may only return one of these 5 intent types and a generic shopping_theme.
+SHOPPING_PARSER_PROMPT = """You are a structured shopping-intent parser for an e-commerce app.
+
+Parse the user's message into a strict JSON object. Do not invent product
+catalog categories. You may only output a GENERIC shopping_theme phrase
+(examples: morning_meal, protein_diet, movie_night, hostel_monthly,
+birthday_party, baby_essentials, pet_supplies, home_cleaning, daily_grooming).
+
+intent_type MUST be EXACTLY ONE of:
+- search_product: user wants to find/browse products
+- recommendation_request: user wants suggestions/recommendations
+- add_to_cart: user wants to add/buy specific products
+- build_bundle: user wants a themed set/kit/bundle of products
+- compare_products: user wants to compare products
+
+Extract product entities (concrete nouns) and constraints.
+Set needs_clarification=true ONLY if you cannot identify any entities AND no
+usable shopping_theme.
+
+User message: "{text}"
+
+Respond ONLY with valid JSON (no markdown, no commentary):
+{{"intent_type": "one_of_the_5_types",
+"confidence": 0.0_to_1.0,
+"shopping_theme": "generic_theme_or_null",
+"entities": ["entity1", "entity2"],
+"constraints": {{"quantity": null, "budget": null, "brand": null, "diet": null}},
+"needs_clarification": false,
+"clarification_question": null}}"""
+
+_VALID_PARSER_INTENTS = {
+    "search_product",
+    "recommendation_request",
+    "add_to_cart",
+    "build_bundle",
+    "compare_products",
+}
+
+
+async def parse_shopping_intent_llm(text: str) -> Optional[dict]:
+    """
+    Parse a shopping message into a structured slot object via Gemini.
+
+    Reuses _call_gemini(), _parse_json_response(), Redis caching, and timeout.
+
+    Returns a dict with keys:
+        intent_type, confidence, shopping_theme, entities,
+        constraints{quantity,budget,brand,diet}, needs_clarification,
+        clarification_question
+    or None on any failure (caller falls back to keyword/semantic path).
+    """
+    cache_key = _make_cache_key("llm_parse", text)
+
+    # Step 1: cache
+    try:
+        cached = await cache_get(cache_key)
+        if cached is not None:
+            cached["cache_hit"] = True
+            return cached
+    except Exception as exc:
+        logger.warning("Shopping-parse cache read failed: %s", exc)
+
+    # Step 2: call Gemini
+    prompt = SHOPPING_PARSER_PROMPT.format(text=text)
+    raw_response = await _call_gemini(prompt)
+    if raw_response is None:
+        return None
+
+    # Step 3: parse + validate
+    result = _parse_json_response(raw_response)
+    if result is None:
+        return None
+
+    if result.get("intent_type") not in _VALID_PARSER_INTENTS:
+        logger.warning("Parser returned invalid intent_type: %s", result.get("intent_type"))
+        return None
+
+    # Normalize fields
+    confidence = float(result.get("confidence", 0.7))
+    result["confidence"] = max(0.0, min(1.0, confidence))
+
+    if not isinstance(result.get("entities"), list):
+        result["entities"] = []
+
+    theme = result.get("shopping_theme")
+    if isinstance(theme, str) and theme.strip().lower() in ("", "null", "none"):
+        theme = None
+    result["shopping_theme"] = theme
+
+    constraints = result.get("constraints")
+    if not isinstance(constraints, dict):
+        constraints = {}
+    result["constraints"] = {
+        "quantity": constraints.get("quantity"),
+        "budget": constraints.get("budget"),
+        "brand": constraints.get("brand"),
+        "diet": constraints.get("diet"),
+    }
+
+    result["needs_clarification"] = bool(result.get("needs_clarification", False))
+    result.setdefault("clarification_question", None)
+    result["method"] = "llm_parser"
+
+    # Step 4: cache
+    try:
+        await cache_set(cache_key, result, LLM_CACHE_TTL)
+    except Exception as exc:
+        logger.warning("Shopping-parse cache write failed: %s", exc)
+
+    result["cache_hit"] = False
+    return result

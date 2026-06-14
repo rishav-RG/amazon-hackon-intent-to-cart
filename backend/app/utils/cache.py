@@ -2,14 +2,13 @@
 Cache utilities — async Redis wrapper with JSON serialization.
 
 Provides cache_get, cache_set, and cache_delete for working with
-JSON-serialized values in Redis. All operations wrap exceptions
-in RuntimeError with context information for debuggability.
+JSON-serialized values in Redis. Uses the shared persistent client.
 """
 
 import json
 from typing import Optional
 
-from app.redis_client import get_redis
+from app.redis_client import get_client
 
 
 async def cache_get(key: str) -> Optional[dict]:
@@ -25,12 +24,11 @@ async def cache_get(key: str) -> Optional[dict]:
         RuntimeError: If the Redis operation fails.
     """
     try:
-        async for redis in get_redis():
-            raw = await redis.get(key)
-            if raw is None:
-                return None
-            return json.loads(raw)
-        return None
+        client = get_client()
+        raw = await client.get(key)
+        if raw is None:
+            return None
+        return json.loads(raw)
     except RuntimeError:
         raise
     except Exception as e:
@@ -49,9 +47,8 @@ async def cache_set(key: str, value: dict, ttl: int) -> None:
         RuntimeError: If the Redis operation fails.
     """
     try:
-        async for redis in get_redis():
-            await redis.set(key, json.dumps(value), ex=ttl)
-            return
+        client = get_client()
+        await client.set(key, json.dumps(value), ex=ttl)
     except RuntimeError:
         raise
     except Exception as e:
@@ -68,9 +65,8 @@ async def cache_delete(key: str) -> None:
         RuntimeError: If the Redis operation fails.
     """
     try:
-        async for redis in get_redis():
-            await redis.delete(key)
-            return
+        client = get_client()
+        await client.delete(key)
     except RuntimeError:
         raise
     except Exception as e:

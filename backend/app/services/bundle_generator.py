@@ -91,7 +91,8 @@ class BundleGenerator:
     def generate(
         intent_type: str,
         user_id: str,
-        signals: PersonalizationSignals
+        signals: PersonalizationSignals,
+        products: list[dict] | None = None,
     ) -> list[BundleSchema]:
         """
         Generate three bundles (budget, classic, premium) for the given intent.
@@ -100,12 +101,16 @@ class BundleGenerator:
             intent_type: The classified intent type (e.g., "meal_preparation").
             user_id: The user ID (for naming/tracking).
             signals: Personalization signals for product boosting.
+            products: OPTIONAL retrieved products (from ProductRetriever). When
+                provided, bundles are composed from these instead of MOCK_CATALOG.
+                Each dict must contain: product_id, name, brand, category, price.
+                When None, behavior is exactly the original MOCK_CATALOG path.
             
         Returns:
             List of 3 BundleSchema objects (budget, classic, premium).
             
         Algorithm:
-            1. Get products for intent_type from MOCK_CATALOG
+            1. Get products: retrieved products if provided, else MOCK_CATALOG[intent_type]
             2. Boost/prioritize products matching user preferences
             3. Split into 3 tiers:
                - Budget: 3-4 cheapest items
@@ -118,8 +123,11 @@ class BundleGenerator:
             - Returns bundles with final_score=0.0 (scoring happens in RankingEngine)
             - Bundle names include intent type (e.g., "Meal Preparation — Budget")
         """
-        # Get products for this intent type (fallback to general)
-        products = MOCK_CATALOG.get(intent_type, MOCK_CATALOG["general"])
+        # Get products: prefer retrieved products, else MOCK_CATALOG (fallback general)
+        if products:
+            products = products
+        else:
+            products = MOCK_CATALOG.get(intent_type, MOCK_CATALOG["general"])
         
         # Apply personalization boosting
         boosted_products = BundleGenerator._apply_personalization_boost(

@@ -4,9 +4,9 @@
   "Bakery, Cakes & Dairy": "meal_preparation",
   "Eggs, Meat & Fish": "meal_preparation",
   "Gourmet & World Food": "meal_preparation",
-  "Beverages": "general",
-  "Snacks & Branded Foods": "party_supplies",
-  "Beauty & Hygiene": "general",
+  "Beverages": "beverages_snacks",
+  "Snacks & Branded Foods": "beverages_snacks",
+  "Beauty & Hygiene": "personal_care",
   "Cleaning & Household": "cleaning",
   "Kitchen, Garden & Pets": "pet_care",
   "Baby Care": "baby_care"

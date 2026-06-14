@@ -12,18 +12,16 @@ from fastapi import APIRouter, Response
 from sqlalchemy import text
 
 from app.database import AsyncSessionLocal
-from app.redis_client import pool
+from app.redis_client import get_client as get_redis_client
 from app.schemas.health import HealthResponse
-
-import redis.asyncio as redis
 
 router = APIRouter(tags=["health"])
 
-_TIMEOUT_SECONDS = 3.0
+_TIMEOUT_SECONDS = 10.0
 
 
 async def _check_db() -> bool:
-    """Check database connectivity by executing SELECT 1 with a 3s timeout."""
+    """Check database connectivity by executing SELECT 1 with a 10s timeout."""
     try:
         async with AsyncSessionLocal() as session:
             await asyncio.wait_for(
@@ -31,20 +29,25 @@ async def _check_db() -> bool:
                 timeout=_TIMEOUT_SECONDS,
             )
         return True
-    except Exception:
+    except asyncio.TimeoutError:
+        import logging
+        logging.getLogger(__name__).warning("DB health check timed out (Neon cold start?)")
+        return False
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).warning("DB health check failed: %s: %s", type(e).__name__, e)
         return False
 
 
 async def _check_redis() -> bool:
-    """Check Redis connectivity by executing PING with a 3s timeout."""
+    """Check Redis connectivity by executing PING."""
     try:
-        client = redis.Redis(connection_pool=pool)
-        try:
-            await asyncio.wait_for(client.ping(), timeout=_TIMEOUT_SECONDS)
-            return True
-        finally:
-            await client.aclose()
-    except Exception:
+        client = get_redis_client()
+        await asyncio.wait_for(client.ping(), timeout=_TIMEOUT_SECONDS)
+        return True
+    except Exception as e:
+        import logging
+        logging.getLogger(__name__).warning("Redis health check failed: %s: %s", type(e).__name__, e)
         return False
 
 

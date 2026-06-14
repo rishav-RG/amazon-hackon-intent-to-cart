@@ -20,8 +20,8 @@ from app.dependencies import get_current_user_id
 from app.metrics import metrics
 from app.models.intent import Intent_Model
 from app.redis_client import get_redis
-from app.schemas.intent import IntentRequest, IntentResponse
-from app.services import clarification_engine, intent_engine
+from app.schemas.intent import IntentRequest, IntentResponse, ShoppingConstraints
+from app.services import clarification_engine, clarification_manager, hybrid_parser
 
 logger = logging.getLogger(__name__)
 
@@ -46,8 +46,10 @@ async def classify_intent(
     6. Increment metrics counters
     7. Return IntentResponse
     """
-    # Step 1: Classify intent (AppException from classify propagates to global handler)
-    result = await intent_engine.classify_hybrid(request.text)
+    # Step 1: Hybrid parse (LLM structured parser → fallback classify_hybrid)
+    # Returns intent_type (mapped to existing enum), entities, shopping_theme,
+    # constraints, and clarification hints. NEVER raises.
+    result = await hybrid_parser.parse(request.text)
 
     # Step 2: Check Redis cache for bundle
     cached_bundle = None
@@ -63,55 +65,62 @@ async def classify_intent(
         # Cache errors are fire-and-forget — don't fail the request
         logger.warning("Cache lookup failed for key '%s': %s", cache_key, exc)
 
-    # Step 3: Persist intent to database
+    # Step 3: Persist intent to database (now includes hybrid slots)
     intent = Intent_Model(
         user_id=user_id,
         session_id=request.session_id,
         raw_text=request.text,
         intent_type=result.intent_type,
         confidence=result.confidence,
+        shopping_theme=result.shopping_theme,
+        entities=result.entities,
+        constraints=result.constraints,
     )
     db.add(intent)
     await db.commit()
     await db.refresh(intent)
 
-    # Step 4: If confidence < 0.7, initiate clarification flow
+    # Step 4: Clarification via priority-ordered slot manager.
+    # Triggers when slots are missing OR confidence < 0.7 (preserves old behavior).
     clarification_question = None
-    if result.confidence < 0.7:
-        # Try LLM-powered smart clarification first
+    needs_clar = result.needs_clarification or result.confidence < 0.7
+    if needs_clar:
         try:
-            smart_question = await clarification_engine.get_next_question_smart(
+            clarification_question = await clarification_manager.resolve_question(
                 user_text=request.text,
                 intent_type=result.intent_type,
                 confidence=result.confidence,
                 entities=result.entities,
-                previous_questions=[],
-                answered_count=0,
+                constraints=result.constraints,
+                llm_suggested=result.clarification_question,
             )
-            clarification_question = smart_question or clarification_engine.get_first_question(
-                result.intent_type
-            )
+            # Final safety net: static first question
+            if clarification_question is None and result.confidence < 0.7:
+                clarification_question = clarification_engine.get_first_question(
+                    result.intent_type
+                )
         except Exception:
-            # Fallback to static question on any error
             clarification_question = clarification_engine.get_first_question(
                 result.intent_type
             )
-        # Store clarification session in Redis with TTL 900s
-        session_data = json.dumps({
-            "intent_id": str(intent.id),
-            "intent_type": result.intent_type,
-            "answered_count": 0,
-            "current_question": clarification_question,
-        })
-        try:
-            session_key = f"clarification:session:{request.session_id}"
-            await redis_client.set(session_key, session_data, ex=900)
-        except Exception as exc:
-            logger.warning(
-                "Failed to store clarification session '%s': %s",
-                request.session_id,
-                exc,
-            )
+
+        # Store clarification session in Redis with TTL 900s (unchanged)
+        if clarification_question is not None:
+            session_data = json.dumps({
+                "intent_id": str(intent.id),
+                "intent_type": result.intent_type,
+                "answered_count": 0,
+                "current_question": clarification_question,
+            })
+            try:
+                session_key = f"clarification:session:{request.session_id}"
+                await redis_client.set(session_key, session_data, ex=900)
+            except Exception as exc:
+                logger.warning(
+                    "Failed to store clarification session '%s': %s",
+                    request.session_id,
+                    exc,
+                )
 
     # Step 5: Emit intent.created event (Dev C stub — fire-and-forget log)
     logger.info(
@@ -127,7 +136,7 @@ async def classify_intent(
     if result.intent_type == "checkout":
         metrics.increment_checkout()
 
-    # Step 7: Return response
+    # Step 7: Return response (now includes hybrid slots)
     return IntentResponse(
         intent_id=intent.id,
         intent_type=result.intent_type,
@@ -137,4 +146,8 @@ async def classify_intent(
         cached_bundle=cached_bundle,
         llm_used=result.llm_used,
         fallback=result.fallback,
+        shopping_theme=result.shopping_theme,
+        constraints=ShoppingConstraints(**result.constraints) if result.constraints else None,
+        resolved_category=None,  # resolved later at bundle time
+        needs_clarification=clarification_question is not None,
     )

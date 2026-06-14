@@ -8,7 +8,7 @@ import uuid
 from typing import TYPE_CHECKING
 
 from sqlalchemy import DateTime, Float, String, Text, func
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.models import Base
@@ -36,6 +36,10 @@ class Intent_Model(Base):
     raw_text: Mapped[str] = mapped_column(Text, nullable=False)
     intent_type: Mapped[str] = mapped_column(String(50), nullable=False)
     confidence: Mapped[float] = mapped_column(Float, nullable=False)
+    # ── NEW nullable columns (backward-compatible; old rows have NULL) ──
+    shopping_theme: Mapped[str | None] = mapped_column(String(100), nullable=True)
+    entities: Mapped[list | None] = mapped_column(JSONB, nullable=True)
+    constraints: Mapped[dict | None] = mapped_column(JSONB, nullable=True)
     created_at: Mapped[str] = mapped_column(
         DateTime(timezone=True),
         server_default=func.now(),

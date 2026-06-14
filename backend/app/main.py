@@ -19,7 +19,7 @@ from app.database import dispose_engine
 from app.exceptions import AppException
 from app.middleware.request_id import RequestIDMiddleware
 from app.middleware.timing import RequestTimingMiddleware
-from app.redis_client import pool as redis_pool
+from app.redis_client import init_redis, close_redis
 from app.routers import clarification, health, intent, metrics
 from app.routers import cart, checkout, buy_again
 
@@ -95,12 +95,31 @@ def create_app() -> FastAPI:
 
     # --- Shutdown Event ---
 
+    @app.on_event("startup")
+    async def startup_event() -> None:
+        """Initialize Redis, warm DB pool, and pre-load category embeddings."""
+        await init_redis()
+        # Pre-warm DB connection (Neon cold start can take 5-10s)
+        from app.database import AsyncSessionLocal
+        from sqlalchemy import text
+        try:
+            async with AsyncSessionLocal() as session:
+                await session.execute(text("SELECT 1"))
+            logger.info("Database connection pool warmed up")
+        except Exception as exc:
+            logger.warning("DB warm-up failed (will retry on first request): %s", exc)
+        # Pre-load category embeddings for the hybrid Category Resolver
+        try:
+            from app.services import category_resolver
+            category_resolver.warmup()
+        except Exception as exc:
+            logger.warning("CategoryResolver warmup failed: %s", exc)
+
     @app.on_event("shutdown")
     async def shutdown_event() -> None:
-        """Dispose database engine and close Redis pool on shutdown."""
+        """Dispose database engine and close Redis client on shutdown."""
         await dispose_engine()
-        if redis_pool is not None:
-            await redis_pool.aclose()
+        await close_redis()
 
     return app
 
