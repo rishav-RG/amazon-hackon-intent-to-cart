@@ -65,6 +65,8 @@ class SearchResponse(BaseModel):
     bundles: list[BundleResult]
     query: str
     total_results: int
+    clarification_question: Optional[str] = None
+    needs_clarification: bool = False
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -115,7 +117,45 @@ async def search(
         )
 
     # ──────────────────────────────────────────────────────────────────────────
-    # Step 2: Semantic Product Search
+    # Step 2: Check if clarification needed (confidence < 0.5 AND not a fallback)
+    # ──────────────────────────────────────────────────────────────────────────
+
+    if intent.confidence < 0.5 and not intent.fallback:
+        # Only ask for clarification if we're confident the intent is wrong
+        # (not just because LLM/semantic failed)
+        clarification_q = None
+        try:
+            from app.services.clarification_engine import get_next_question_smart
+            clarification_q = await get_next_question_smart(
+                user_text=query,
+                intent_type=intent.intent_type,
+                confidence=intent.confidence,
+                entities=intent.entities,
+                previous_questions=[],
+                answered_count=0,
+            )
+        except Exception:
+            pass
+
+        if not clarification_q:
+            from app.services.clarification_engine import get_first_question
+            try:
+                clarification_q = get_first_question(intent.intent_type)
+            except Exception:
+                clarification_q = "Could you tell me more about what you're looking for?"
+
+        return SearchResponse(
+            intent=intent,
+            products=[],
+            bundles=[],
+            query=query,
+            total_results=0,
+            clarification_question=clarification_q,
+            needs_clarification=True,
+        )
+
+    # ──────────────────────────────────────────────────────────────────────────
+    # Step 3: Semantic Product Search
     # ──────────────────────────────────────────────────────────────────────────
 
     catalog = get_product_catalog()
