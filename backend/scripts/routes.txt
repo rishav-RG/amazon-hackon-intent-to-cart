@@ -1,0 +1,10 @@
+App loaded OK. Routes:
+  /v1/intent
+  /v1/clarification
+  /v1/metrics
+  /v1/bundles/{intent_id}
+  /v1/search
+  /v1/cart
+  /v1/cart/{cart_id}
+  /v1/checkout
+  /v1/buy-again

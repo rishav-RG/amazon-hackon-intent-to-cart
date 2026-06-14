@@ -88,6 +88,10 @@ def create_app() -> FastAPI:
     from app.routers import bundles
     app.include_router(bundles.router)
 
+    # Search router (Intent-to-Cart unified endpoint)
+    from app.routers import search
+    app.include_router(search.router)
+
     # Cart & Checkout routers (Dev C)
     app.include_router(cart.router)
     app.include_router(checkout.router)

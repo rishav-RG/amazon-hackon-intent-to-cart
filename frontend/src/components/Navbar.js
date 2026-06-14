@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
+import IntentSearch from './IntentSearch';
 
 const Navbar = ({ onSearch }) => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -51,36 +52,9 @@ const Navbar = ({ onSearch }) => {
               </div>
             </div>
 
-            {/* Search Bar */}
+            {/* Search Bar — AI-Powered Intent Search */}
             <div className="flex-1 max-w-2xl mx-2 sm:mx-4">
-              <form onSubmit={handleSearch} className="flex">
-                <select 
-                  className="hidden sm:block bg-gray-200 text-gray-900 px-2 sm:px-3 py-2 rounded-l-md border-r border-gray-300 focus:outline-none text-sm"
-                  value={searchCategory}
-                  onChange={(e) => setSearchCategory(e.target.value)}
-                >
-                  <option>All</option>
-                  <option>Electronics</option>
-                  <option>Books</option>
-                  <option>Home & Garden</option>
-                  <option>Sports</option>
-                </select>
-                <input
-                  type="text"
-                  placeholder="Search Amazon"
-                  className="flex-1 px-2 sm:px-4 py-2 text-gray-900 focus:outline-none text-sm sm:text-base rounded-l-md sm:rounded-l-none"
-                  value={searchQuery}
-                  onChange={handleInputChange}
-                />
-                <button 
-                  type="submit"
-                  className="bg-orange-400 hover:bg-orange-500 px-3 sm:px-4 py-2 rounded-r-md"
-                >
-                  <svg className="w-4 h-4 sm:w-5 sm:h-5" fill="currentColor" viewBox="0 0 20 20">
-                    <path fillRule="evenodd" d="M8 4a4 4 0 100 8 4 4 0 000-8zM2 8a6 6 0 1110.89 3.476l4.817 4.817a1 1 0 01-1.414 1.414l-4.816-4.816A6 6 0 012 8z" clipRule="evenodd" />
-                  </svg>
-                </button>
-              </form>
+              <IntentSearch />
             </div>
 
             {/* Right Side Menu */}
