@@ -1,0 +1,362 @@
+[
+  {
+    "id": 1,
+    "title": "Apple iPhone 15 Pro Max, 256GB, Natural Titanium",
+    "description": "The iPhone 15 Pro Max features a stunning 6.7-inch Super Retina XDR display, A17 Pro chip, and advanced camera system with 5x Telephoto lens.",
+    "image": "https://images.unsplash.com/photo-1695048133142-1a20484d2569?w=400&h=400&fit=crop",
+    "price": 1199.99,
+    "rating": 4.8,
+    "reviewCount": 12543
+  },
+  {
+    "id": 2,
+    "title": "Samsung 65\" Class Neo QLED 4K QN90C Smart TV",
+    "description": "Experience brilliant picture quality with Quantum Dot technology and Mini LED backlighting for precise contrast control.",
+    "image": "https://images.unsplash.com/photo-1593359677879-a4bb92f829d1?w=400&h=400&fit=crop",
+    "price": 1899.99,
+    "rating": 4.6,
+    "reviewCount": 8742
+  },
+  {
+    "id": 3,
+    "title": "Sony WH-1000XM5 Wireless Noise Canceling Headphones",
+    "description": "Industry-leading noise canceling with new Auto NC Optimizer, exceptional call quality, and up to 30 hour battery life.",
+    "image": "https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400&h=400&fit=crop",
+    "price": 399.99,
+    "rating": 4.7,
+    "reviewCount": 15632
+  },
+  {
+    "id": 4,
+    "title": "Apple MacBook Air 15-inch: Apple M2 chip with 8-core CPU",
+    "description": "Supercharged by the Apple M2 chip, the redesigned MacBook Air combines incredible performance and up to 18 hours of battery life.",
+    "image": "https://images.unsplash.com/photo-1517336714731-489689fd1ca8?w=400&h=400&fit=crop",
+    "price": 1299.99,
+    "rating": 4.9,
+    "reviewCount": 9876
+  },
+  {
+    "id": 5,
+    "title": "Amazon Echo Dot (5th Gen) Smart speaker with Alexa",
+    "description": "Our most popular smart speaker with a fabric design. Ready to help with music, smart home control, and more.",
+    "image": "https://images.unsplash.com/photo-1543512214-318c7553f230?w=400&h=400&fit=crop",
+    "price": 49.99,
+    "rating": 4.5,
+    "reviewCount": 23451
+  },
+  {
+    "id": 6,
+    "title": "Nintendo Switch OLED Model with Neon Red and Neon Blue Joy-Con",
+    "description": "Play at home or on the go with a vivid 7-inch OLED screen that makes colors pop.",
+    "image": "https://images.unsplash.com/photo-1606144042614-b2417e99c4e3?w=400&h=400&fit=crop",
+    "price": 349.99,
+    "rating": 4.8,
+    "reviewCount": 18765
+  },
+  {
+    "id": 7,
+    "title": "Instant Pot Duo 7-in-1 Electric Pressure Cooker, 6 Quart",
+    "description": "7 appliances in 1: Pressure Cooker, Slow Cooker, Rice Cooker, Yogurt Maker, Steamer, Sauté Pan, and Food Warmer.",
+    "image": "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=400&h=400&fit=crop",
+    "price": 79.99,
+    "rating": 4.6,
+    "reviewCount": 34567
+  },
+  {
+    "id": 8,
+    "title": "Kindle Paperwhite (11th Generation) - 6.8\" display",
+    "description": "Purpose-built for reading with a flush-front design and 300 ppi glare-free display that reads like real paper.",
+    "image": "https://images.unsplash.com/photo-1481349518771-20055b2a7b24?w=400&h=400&fit=crop",
+    "price": 139.99,
+    "rating": 4.7,
+    "reviewCount": 28934
+  },
+  {
+    "id": 9,
+    "title": "Apple AirPods Pro (2nd Generation) with MagSafe Case",
+    "description": "Rebuilt from the sound up. The new AirPods Pro have been re-engineered to deliver even more of that magical AirPods experience.",
+    "image": "https://images.unsplash.com/photo-1572569511254-d8f925fe2cbb?w=400&h=400&fit=crop",
+    "price": 249.99,
+    "rating": 4.8,
+    "reviewCount": 16789
+  },
+  {
+    "id": 10,
+    "title": "YETI Rambler 20 oz Tumbler, Stainless Steel, Vacuum Insulated",
+    "description": "Double-wall vacuum insulation keeps cold drinks cold and hot drinks hot until the last sip.",
+    "image": "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&h=400&fit=crop",
+    "price": 34.99,
+    "rating": 4.9,
+    "reviewCount": 12456
+  },
+  {
+    "id": 11,
+    "title": "Fitbit Charge 5 Advanced Fitness & Health Tracker",
+    "description": "Built-in GPS, Daily Readiness Score, Health Metrics Dashboard, 6+ day battery, and more.",
+    "image": "https://images.unsplash.com/photo-1575311373937-040b8e1fd5b6?w=400&h=400&fit=crop",
+    "price": 149.99,
+    "rating": 4.4,
+    "reviewCount": 9823
+  },
+  {
+    "id": 12,
+    "title": "Ninja Foodi Personal Blender with 18 oz. BPA Free Cup",
+    "description": "Blast through ice and frozen fruit in 20 seconds. The Ninja blade assembly is perfectly designed for crushing.",
+    "image": "https://images.unsplash.com/photo-1570197788417-0e82375c9371?w=400&h=400&fit=crop",
+    "price": 79.99,
+    "rating": 4.5,
+    "reviewCount": 7634
+  },
+  {
+    "id": 13,
+    "title": "Samsung Galaxy S24 Ultra, 256GB, Titanium Black",
+    "description": "The most powerful Galaxy phone yet with S Pen, 200MP camera, and all-day intelligent battery.",
+    "image": "https://images.unsplash.com/photo-1592750475338-74b7b21085ab?w=400&h=400&fit=crop",
+    "price": 1299.99,
+    "rating": 4.7,
+    "reviewCount": 8934
+  },
+  {
+    "id": 14,
+    "title": "Google Pixel 8 Pro, 128GB, Obsidian",
+    "description": "Google's most pro phone yet with Magic Eraser, Best Take, and advanced computational photography.",
+    "image": "https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=400&h=400&fit=crop",
+    "price": 999.99,
+    "rating": 4.6,
+    "reviewCount": 6543
+  },
+  {
+    "id": 15,
+    "title": "Dell XPS 13 Plus Laptop, Intel Core i7, 16GB RAM, 512GB SSD",
+    "description": "Ultra-thin laptop with stunning 13.4-inch InfinityEdge display and exceptional performance.",
+    "image": "https://images.unsplash.com/photo-1496181133206-80ce9b88a853?w=400&h=400&fit=crop",
+    "price": 1399.99,
+    "rating": 4.5,
+    "reviewCount": 4321
+  },
+  {
+    "id": 16,
+    "title": "HP Pavilion Gaming Desktop, AMD Ryzen 5, 16GB RAM, RTX 3060",
+    "description": "Ready for gaming and content creation with powerful AMD processor and NVIDIA graphics.",
+    "image": "https://images.unsplash.com/photo-1593640408182-31c70c8268f5?w=400&h=400&fit=crop",
+    "price": 899.99,
+    "rating": 4.4,
+    "reviewCount": 3456
+  },
+  {
+    "id": 17,
+    "title": "Bose QuietComfort 45 Wireless Noise Cancelling Headphones",
+    "description": "Acclaimed noise cancellation technology with premium comfort and crystal clear calls.",
+    "image": "https://images.unsplash.com/photo-1583394838336-acd977736f90?w=400&h=400&fit=crop",
+    "price": 329.99,
+    "rating": 4.6,
+    "reviewCount": 11234
+  },
+  {
+    "id": 18,
+    "title": "JBL Charge 5 Portable Waterproof Bluetooth Speaker",
+    "description": "Bold JBL Original Pro Sound with 20 hours of playtime and powerbank feature.",
+    "image": "https://images.unsplash.com/photo-1608043152269-423dbba4e7e1?w=400&h=400&fit=crop",
+    "price": 179.99,
+    "rating": 4.7,
+    "reviewCount": 8765
+  },
+  {
+    "id": 19,
+    "title": "PlayStation 5 Console",
+    "description": "Experience lightning-fast loading with an ultra-high speed SSD, deeper immersion with haptic feedback.",
+    "image": "https://images.unsplash.com/photo-1606813907291-d86efa9b94db?w=400&h=400&fit=crop",
+    "price": 499.99,
+    "rating": 4.9,
+    "reviewCount": 25643
+  },
+  {
+    "id": 20,
+    "title": "Xbox Series X Console",
+    "description": "The fastest, most powerful Xbox ever with 12 teraflops of processing power and Quick Resume.",
+    "image": "https://images.unsplash.com/photo-1621259182978-fbf93132d53d?w=400&h=400&fit=crop",
+    "price": 499.99,
+    "rating": 4.8,
+    "reviewCount": 18976
+  },
+  {
+    "id": 21,
+    "title": "Ring Video Doorbell 4 - Smart WiFi Doorbell Camera",
+    "description": "1080p HD video, advanced motion detection, and Alexa-enabled for convenient, hands-free control.",
+    "image": "https://images.unsplash.com/photo-1558618666-fcd25c85cd64?w=400&h=400&fit=crop",
+    "price": 199.99,
+    "rating": 4.3,
+    "reviewCount": 12876
+  },
+  {
+    "id": 22,
+    "title": "Philips Hue White and Color Ambiance Smart Bulb Starter Kit",
+    "description": "Transform your home with smart lighting that changes color and brightness to suit your mood.",
+    "image": "https://images.unsplash.com/photo-1558770137-c183db17f95b?w=400&h=400&fit=crop",
+    "price": 199.99,
+    "rating": 4.5,
+    "reviewCount": 9834
+  },
+  {
+    "id": 23,
+    "title": "The Seven Husbands of Evelyn Hugo: A Novel",
+    "description": "A captivating novel about a reclusive Hollywood icon who finally decides to tell her story.",
+    "image": "https://images.unsplash.com/photo-1544947950-fa07a98d237f?w=400&h=400&fit=crop",
+    "price": 16.99,
+    "rating": 4.8,
+    "reviewCount": 45623
+  },
+  {
+    "id": 24,
+    "title": "Where the Crawdads Sing",
+    "description": "A coming-of-age story and murder mystery set in the marshlands of North Carolina.",
+    "image": "https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=400&h=400&fit=crop",
+    "price": 14.99,
+    "rating": 4.7,
+    "reviewCount": 38765
+  },
+  {
+    "id": 25,
+    "title": "Atomic Habits: An Easy & Proven Way to Build Good Habits",
+    "description": "Transform your life with tiny changes in behavior that deliver remarkable results.",
+    "image": "https://images.unsplash.com/photo-1592496431122-2349e0fbc666?w=400&h=400&fit=crop",
+    "price": 18.99,
+    "rating": 4.9,
+    "reviewCount": 52341
+  },
+  {
+    "id": 26,
+    "title": "Educated: A Memoir",
+    "description": "A memoir about a young girl who, kept out of school, leaves her survivalist family and goes on to earn a PhD.",
+    "image": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=400&fit=crop",
+    "price": 17.99,
+    "rating": 4.6,
+    "reviewCount": 29876
+  },
+  {
+    "id": 27,
+    "title": "Campbell Biology (Campbell Biology Series) 12th Edition",
+    "description": "The world's most successful majors biology textbook and media program for over 50 years.",
+    "image": "https://images.unsplash.com/photo-1532012197267-da84d127e765?w=400&h=400&fit=crop",
+    "price": 389.99,
+    "rating": 4.4,
+    "reviewCount": 1234
+  },
+  {
+    "id": 28,
+    "title": "Calculus: Early Transcendentals 8th Edition",
+    "description": "The most successful calculus book of its generation, offering students clear explanations.",
+    "image": "https://images.unsplash.com/photo-1635070041078-e363dbe005cb?w=400&h=400&fit=crop",
+    "price": 299.99,
+    "rating": 4.2,
+    "reviewCount": 876
+  },
+  {
+    "id": 29,
+    "title": "Green Eggs and Ham by Dr. Seuss",
+    "description": "A beloved classic that children will love reading over and over again.",
+    "image": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=400&h=400&fit=crop",
+    "price": 8.99,
+    "rating": 4.9,
+    "reviewCount": 15432
+  },
+  {
+    "id": 30,
+    "title": "The Very Hungry Caterpillar by Eric Carle",
+    "description": "The classic picture book that has charmed children for generations.",
+    "image": "https://images.unsplash.com/photo-1481627834876-b7833e8f5570?w=400&h=400&fit=crop",
+    "price": 9.99,
+    "rating": 4.8,
+    "reviewCount": 12876
+  },
+  {
+    "id": 31,
+    "title": "KitchenAid Stand Mixer, 5-Qt, Artisan Series",
+    "description": "The iconic stand mixer with 10 speeds and over 15 optional attachments available.",
+    "image": "https://images.unsplash.com/photo-1556909114-4ba7d7e1b7e1?w=400&h=400&fit=crop",
+    "price": 449.99,
+    "rating": 4.8,
+    "reviewCount": 18765
+  },
+  {
+    "id": 32,
+    "title": "Ninja Foodi 8-Quart 9-in-1 Deluxe XL Pressure Cooker",
+    "description": "The original that started it all - pressure cook, air fry, and more in one appliance.",
+    "image": "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=400&h=400&fit=crop",
+    "price": 199.99,
+    "rating": 4.6,
+    "reviewCount": 14532
+  },
+  {
+    "id": 33,
+    "title": "West Elm Mid-Century Coffee Table, Walnut",
+    "description": "Clean-lined and classic, this coffee table anchors your living room in effortless style.",
+    "image": "https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=400&h=400&fit=crop",
+    "price": 699.99,
+    "rating": 4.4,
+    "reviewCount": 2134
+  },
+  {
+    "id": 34,
+    "title": "Ashley Furniture Signature Design Sofa, Gray",
+    "description": "Contemporary sectional sofa with plush cushioning and neutral gray upholstery.",
+    "image": "https://images.unsplash.com/photo-1555041469-a586c61ea9bc?w=400&h=400&fit=crop",
+    "price": 899.99,
+    "rating": 4.3,
+    "reviewCount": 3456
+  },
+  {
+    "id": 35,
+    "title": "Brooklinen Luxe Core Sheet Set, Percale, Queen",
+    "description": "Crisp, cool, and comfortable percale sheets made from 100% long-staple cotton.",
+    "image": "https://images.unsplash.com/photo-1631049307264-da0ec9d70304?w=400&h=400&fit=crop",
+    "price": 149.99,
+    "rating": 4.7,
+    "reviewCount": 8765
+  },
+  {
+    "id": 36,
+    "title": "The Container Store Elfa Classic 4' Closet System",
+    "description": "Complete closet organization system with shelves, hanging rods, and drawers.",
+    "image": "https://images.unsplash.com/photo-1558618047-3c8c76ca7d13?w=400&h=400&fit=crop",
+    "price": 299.99,
+    "rating": 4.5,
+    "reviewCount": 1876
+  },
+  {
+    "id": 37,
+    "title": "Apple Watch Series 9 GPS, 45mm, Midnight Aluminum",
+    "description": "Advanced health and fitness features, plus the brightest Always-On Retina display yet.",
+    "image": "https://images.unsplash.com/photo-1551816230-ef5deaed4a26?w=400&h=400&fit=crop",
+    "price": 429.99,
+    "rating": 4.8,
+    "reviewCount": 16543
+  },
+  {
+    "id": 38,
+    "title": "Garmin Forerunner 265 GPS Running Smartwatch",
+    "description": "Bright AMOLED display with up to 13 days of battery life and advanced training metrics.",
+    "image": "https://images.unsplash.com/photo-1575311373937-040b8e1fd5b6?w=400&h=400&fit=crop",
+    "price": 449.99,
+    "rating": 4.6,
+    "reviewCount": 7654
+  },
+  {
+    "id": 39,
+    "title": "NordicTrack Commercial 1750 Treadmill",
+    "description": "Interactive fitness with iFit technology, 10\" Smart HD touchscreen, and powerful motor.",
+    "image": "https://images.unsplash.com/photo-1571019613454-1cb2f99b2d8b?w=400&h=400&fit=crop",
+    "price": 1799.99,
+    "rating": 4.4,
+    "reviewCount": 3245
+  },
+  {
+    "id": 40,
+    "title": "Bowflex SelectTech 552 Adjustable Dumbbells (Pair)",
+    "description": "Replace 15 sets of weights with just one with these space-efficient adjustable dumbbells.",
+    "image": "https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=400&h=400&fit=crop",
+    "price": 399.99,
+    "rating": 4.7,
+    "reviewCount": 9876
+  }
+]
