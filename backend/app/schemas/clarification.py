@@ -19,6 +19,13 @@ class ClarificationRequest(BaseModel):
     answer: str = Field(min_length=1, max_length=2000)
 
 
+class ClarificationQA(BaseModel):
+    """A single question-answer pair from the clarification session."""
+
+    question: str
+    answer: str
+
+
 class ClarificationResponse(BaseModel):
     """Response schema for POST /v1/clarification.
 
@@ -28,6 +35,7 @@ class ClarificationResponse(BaseModel):
     complete: bool
     next_question: str | None = None
     questions_remaining: int = Field(ge=0, le=3)
+    answered_questions: list[ClarificationQA] | None = None
 
     @model_validator(mode="after")
     def validate_complete_state(self) -> "ClarificationResponse":

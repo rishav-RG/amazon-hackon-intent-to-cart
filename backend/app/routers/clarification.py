@@ -21,7 +21,7 @@ from app.exceptions import AppException, INTENT_NOT_FOUND, SESSION_EXPIRED
 from app.models.clarification import Clarification_Model
 from app.models.intent import Intent_Model
 from app.redis_client import get_redis
-from app.schemas.clarification import ClarificationRequest, ClarificationResponse
+from app.schemas.clarification import ClarificationRequest, ClarificationResponse, ClarificationQA
 from app.services.clarification_engine import get_next_question, MAX_CLARIFICATION_QUESTIONS
 
 logger = logging.getLogger(__name__)
@@ -113,8 +113,23 @@ async def post_clarification(
             questions_remaining=MAX_CLARIFICATION_QUESTIONS - (answered_count + 1),
         )
 
-    # 7. Clarification complete — clean up session and emit event
-    await redis_client.delete(session_key)
+    # 7. Clarification complete — clean up session, collect all answers, and emit event
+    try:
+        await redis_client.delete(session_key)
+    except Exception as exc:
+        logger.warning("Failed to delete clarification session '%s': %s", session_key, exc)
+
+    # Fetch all Q&A pairs for this intent from the database
+    all_clarifications = await db.execute(
+        select(Clarification_Model)
+        .where(Clarification_Model.intent_id == request.intent_id)
+        .order_by(Clarification_Model.timestamp)
+    )
+    qa_rows = all_clarifications.scalars().all()
+    answered_questions = [
+        ClarificationQA(question=row.question, answer=row.answer)
+        for row in qa_rows
+    ]
 
     # Fire-and-forget event stub (Event_Bus owned by Dev C)
     logger.info(
@@ -127,4 +142,5 @@ async def post_clarification(
         complete=True,
         next_question=None,
         questions_remaining=0,
+        answered_questions=answered_questions,
     )

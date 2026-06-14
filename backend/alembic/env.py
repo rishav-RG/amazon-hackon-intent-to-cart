@@ -22,7 +22,11 @@ from app.models import Base  # noqa: E402
 config = context.config
 
 # Override sqlalchemy.url with the actual DATABASE_URL from app settings.
-config.set_main_option("sqlalchemy.url", settings.DATABASE_URL)
+# Ensure the URL uses the asyncpg driver for async migrations.
+_db_url = settings.DATABASE_URL
+if _db_url.startswith("postgresql://"):
+    _db_url = _db_url.replace("postgresql://", "postgresql+asyncpg://", 1)
+config.set_main_option("sqlalchemy.url", _db_url)
 
 # Interpret the config file for Python logging.
 if config.config_file_name is not None:
@@ -70,6 +74,7 @@ async def run_async_migrations() -> None:
         config.get_section(config.config_ini_section, {}),
         prefix="sqlalchemy.",
         poolclass=pool.NullPool,
+        connect_args={"ssl": "require"},
     )
 
     async with connectable.connect() as connection:
