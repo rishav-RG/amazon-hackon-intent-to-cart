@@ -73,7 +73,7 @@ INTENT_DESCRIPTIONS: dict[str, str] = {
 }
 
 SEMANTIC_CACHE_TTL = 3600  # 1 hour
-SEMANTIC_TIMEOUT = 3.0  # seconds
+SEMANTIC_TIMEOUT = 10.0  # seconds (generous for first model load)
 CONFIDENCE_THRESHOLD = 0.7  # minimum semantic confidence to accept
 
 

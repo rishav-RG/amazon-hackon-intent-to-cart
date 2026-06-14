@@ -31,7 +31,6 @@ logger = logging.getLogger(__name__)
 
 LLM_TIMEOUT = 3.0  # seconds
 LLM_CACHE_TTL = 3600  # 1 hour
-LLM_MODEL = "gemini-2.0-flash"  # fast + cheap for classification
 
 _client_initialized = False
 
@@ -62,7 +61,8 @@ async def _call_gemini(prompt: str, timeout: float = LLM_TIMEOUT) -> Optional[st
     _ensure_client()
 
     def _sync_call():
-        model = genai.GenerativeModel(LLM_MODEL)
+        from app.config import settings
+        model = genai.GenerativeModel(settings.GEMINI_MODEL)
         response = model.generate_content(
             prompt,
             generation_config=genai.types.GenerationConfig(

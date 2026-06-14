@@ -17,24 +17,36 @@ import sys
 import os
 
 sys.path.insert(0, ".")
-os.environ.setdefault("DATABASE_URL", "sqlite+aiosqlite:///./test.db")
-os.environ.setdefault("REDIS_URL", "redis://localhost:6379/0")
+# Let .env handle all config — don't override anything except fallbacks for missing vars
 os.environ.setdefault("APP_ENV", "development")
-os.environ.setdefault("GEMINI_API_KEY", "")
 
 import asyncio
 from app.services.intent_engine import classify, classify_hybrid, FAST_PATH_THRESHOLD
 from app.services.product_catalog import get_product_catalog
 
 
-def run_keyword_classification(text):
-    """Run keyword-only classification."""
-    result = classify(text)
-    return {
-        "intent_type": result.intent_type,
-        "confidence": result.confidence,
-        "entities": result.entities,
-    }
+async def run_hybrid_classification(text):
+    """Run full hybrid classification (keyword → LLM → semantic fallback)."""
+    try:
+        result = await classify_hybrid(text)
+        return {
+            "intent_type": result.intent_type,
+            "confidence": result.confidence,
+            "entities": result.entities,
+            "llm_used": result.llm_used,
+            "fallback": result.fallback,
+        }
+    except Exception as e:
+        # Fallback to keyword-only if hybrid fails
+        result = classify(text)
+        return {
+            "intent_type": result.intent_type,
+            "confidence": result.confidence,
+            "entities": result.entities,
+            "llm_used": False,
+            "fallback": True,
+            "error": str(e),
+        }
 
 
 def run_product_search(query, intent_type, top_k=10):
@@ -109,25 +121,19 @@ def main():
 
         print()
 
-        # Step 1: Intent Classification
-        print("  [1] INTENT CLASSIFICATION")
-        keyword_result = run_keyword_classification(user_input)
-        print(f"      Keyword: {keyword_result['intent_type']} (confidence: {keyword_result['confidence']:.2f})")
+        # Step 1: Intent Classification (full hybrid: keyword → LLM → semantic)
+        print("  [1] INTENT CLASSIFICATION (Hybrid)")
+        result = asyncio.run(run_hybrid_classification(user_input))
+        print(f"      Intent: {result['intent_type']}")
+        print(f"      Confidence: {result['confidence']:.2f}")
+        print(f"      LLM used: {result['llm_used']}")
+        print(f"      Fallback: {result['fallback']}")
+        if result.get("error"):
+            print(f"      Error: {result['error']}")
 
-        if keyword_result["confidence"] >= FAST_PATH_THRESHOLD:
-            print(f"      -> FAST PATH (confidence >= {FAST_PATH_THRESHOLD})")
-            intent_type = keyword_result["intent_type"]
-            method = "keyword"
-        else:
-            print(f"      -> Low confidence, would call Gemini LLM in production")
-            # Use keyword result as fallback (no LLM without API key)
-            intent_type = keyword_result["intent_type"]
-            method = "keyword (LLM unavailable in demo)"
-
-        entities = keyword_result["entities"]
-        print(f"      Intent: {intent_type}")
+        intent_type = result["intent_type"]
+        entities = result["entities"]
         print(f"      Entities: {entities}")
-        print(f"      Method: {method}")
         print()
 
         # Step 2: Product Search

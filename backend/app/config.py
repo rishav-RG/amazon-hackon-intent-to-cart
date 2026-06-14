@@ -73,6 +73,7 @@ class Config(BaseSettings):
     
     # Gemini LLM Config
     GEMINI_API_KEY: str = ""  # Required for LLM-based classification + clarification
+    GEMINI_MODEL: str = "gemini-2.0-flash"  # Model to use for classification
 
     model_config = SettingsConfigDict(
         env_file=".env",
