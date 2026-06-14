@@ -3,9 +3,18 @@
 Validates: Requirements 24.1, 24.2, 24.3, 24.4
 """
 
+from app.schemas.bundle_context import BundleContext
+
 from uuid import UUID
 
 from pydantic import BaseModel, Field, model_validator
+
+
+class ClarificationAnswer(BaseModel):
+    """Single answered clarification question."""
+
+    question: str
+    answer: str | None = None
 
 
 class ClarificationRequest(BaseModel):
@@ -28,6 +37,8 @@ class ClarificationResponse(BaseModel):
     complete: bool
     next_question: str | None = None
     questions_remaining: int = Field(ge=0, le=3)
+    answered_questions: list[ClarificationAnswer] = Field(default_factory=list)
+    bundle_context: BundleContext | None = None
 
     @model_validator(mode="after")
     def validate_complete_state(self) -> "ClarificationResponse":
