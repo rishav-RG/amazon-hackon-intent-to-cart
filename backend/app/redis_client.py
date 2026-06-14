@@ -7,11 +7,12 @@ import redis.asyncio as redis
 from app.config import settings
 from app.exceptions import AppException, REDIS_CONNECTION_ERROR
 
-pool: redis.ConnectionPool | None = None
+# Initialize pool eagerly from settings
+pool: redis.ConnectionPool = redis.ConnectionPool.from_url(settings.REDIS_URL)
 
 
 async def init_redis() -> None:
-    """Initialize the Redis connection pool from settings.REDIS_URL."""
+    """Re-initialize the Redis connection pool (e.g., for testing)."""
     global pool
     pool = redis.ConnectionPool.from_url(settings.REDIS_URL)
 

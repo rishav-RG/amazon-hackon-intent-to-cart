@@ -9,6 +9,7 @@ const IntentSearch = () => {
   const [inputValue, setInputValue] = useState('');
   const [loading, setLoading] = useState(false);
   const [lastResults, setLastResults] = useState(null);
+  const [expandedBundle, setExpandedBundle] = useState(null);
   const messagesEndRef = useRef(null);
   const inputRef = useRef(null);
   const { addToCart } = useCart();
@@ -233,33 +234,36 @@ const IntentSearch = () => {
                     </div>
                   </div>
 
-                  {/* Bundles */}
+                  {/* Bundles — Side by Side, Clickable */}
                   {msg.data.bundles.length > 0 && (
-                    <div className="space-y-2">
-                      <p className="text-xs font-medium text-gray-500 px-2">Smart Bundles:</p>
-                      {msg.data.bundles.map((bundle) => (
-                        <div key={bundle.tier} className={`border-2 rounded-lg p-3 ${getTierColor(bundle.tier)}`}>
-                          <div className="flex justify-between items-center mb-1">
-                            <span className="text-sm font-medium">{getTierLabel(bundle.tier)}</span>
-                            <span className="text-sm font-bold">Rs.{bundle.total.toFixed(0)}</span>
-                          </div>
-                          <ul className="text-xs text-gray-600 space-y-0.5 mb-2">
-                            {bundle.items.slice(0, 4).map((item) => (
-                              <li key={item.product_id} className="truncate">• {item.name} - Rs.{item.price}</li>
-                            ))}
-                            {bundle.items.length > 4 && (
-                              <li className="text-gray-400">+{bundle.items.length - 4} more</li>
-                            )}
-                          </ul>
-                          <button
-                            onClick={() => handleAddBundle(bundle)}
-                            className="w-full bg-orange-400 hover:bg-orange-500 text-xs font-medium py-1.5 rounded text-gray-900"
+                    <div>
+                      <p className="text-xs font-medium text-gray-500 px-2 mb-2">Smart Bundles (click to expand):</p>
+                      <div className="grid grid-cols-3 gap-2">
+                        {msg.data.bundles.map((bundle) => (
+                          <div
+                            key={bundle.tier}
+                            onClick={() => setExpandedBundle(expandedBundle?.tier === bundle.tier ? null : bundle)}
+                            className={`border-2 rounded-lg p-2 cursor-pointer transition-all hover:shadow-md ${getTierColor(bundle.tier)} ${expandedBundle?.tier === bundle.tier ? 'ring-2 ring-blue-500' : ''}`}
                           >
-                            Add Bundle to Cart ({bundle.items.length} items)
-                          </button>
-                        </div>
-                      ))}
+                            <div className="text-center">
+                              <span className="text-xs font-medium block">{getTierLabel(bundle.tier)}</span>
+                              <span className="text-sm font-bold block mt-1">Rs.{bundle.total.toFixed(0)}</span>
+                              <span className="text-xs text-gray-500">{bundle.items.length} items</span>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
                     </div>
+                  )}
+
+                  {/* Expanded Bundle Detail */}
+                  {expandedBundle && (
+                    <BundleDetail
+                      bundle={expandedBundle}
+                      onClose={() => setExpandedBundle(null)}
+                      onAddToCart={handleAddBundle}
+                      onAddProduct={handleAddProduct}
+                    />
                   )}
 
                   {/* Individual products */}
@@ -267,7 +271,7 @@ const IntentSearch = () => {
                     <p className="text-xs font-medium text-gray-500 px-2 mb-2">Or pick individual items:</p>
                     <div className="grid grid-cols-2 gap-2 max-h-60 overflow-y-auto">
                       {msg.data.products.slice(0, 8).map((product) => (
-                        <div key={product.product_id} className="border rounded-lg p-2 bg-white">
+                        <div key={product.product_id} className="border rounded-lg p-2 bg-white hover:shadow-md transition-shadow">
                           {product.image_url && (
                             <img
                               src={product.image_url}
@@ -280,13 +284,20 @@ const IntentSearch = () => {
                           <p className="text-xs text-gray-500">{product.brand}</p>
                           <div className="flex items-center justify-between mt-1">
                             <span className="text-xs font-bold">Rs.{product.discount_price || product.price}</span>
-                            <button
-                              onClick={() => handleAddProduct(product)}
-                              className="bg-yellow-400 hover:bg-yellow-500 text-xs px-2 py-0.5 rounded font-medium"
-                            >
-                              Add
-                            </button>
+                            {product.product_url && (
+                              <a href={product.product_url} target="_blank" rel="noopener noreferrer" className="text-blue-500 hover:text-blue-700">
+                                <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                </svg>
+                              </a>
+                            )}
                           </div>
+                          <button
+                            onClick={() => handleAddProduct(product)}
+                            className="w-full mt-1 bg-yellow-400 hover:bg-yellow-500 text-xs px-2 py-1 rounded font-medium"
+                          >
+                            Add to Cart
+                          </button>
                         </div>
                       ))}
                     </div>
@@ -336,6 +347,103 @@ const IntentSearch = () => {
         </div>
       </div>
     </>
+  );
+};
+
+// ──────────────────────────────────────────────────────────────────────────────
+// Bundle Detail Popup Component
+// ──────────────────────────────────────────────────────────────────────────────
+
+const BundleDetail = ({ bundle, onClose, onAddToCart, onAddProduct }) => {
+  const [quantities, setQuantities] = useState(
+    Object.fromEntries(bundle.items.map(item => [item.product_id, 1]))
+  );
+
+  const updateQty = (productId, delta) => {
+    setQuantities(prev => ({
+      ...prev,
+      [productId]: Math.max(1, (prev[productId] || 1) + delta)
+    }));
+  };
+
+  const totalWithQuantities = bundle.items.reduce(
+    (sum, item) => sum + (item.discount_price || item.price) * (quantities[item.product_id] || 1),
+    0
+  );
+
+  return (
+    <div className="border-2 border-blue-300 rounded-xl bg-white shadow-lg p-4 space-y-3">
+      {/* Header */}
+      <div className="flex justify-between items-center">
+        <h4 className="text-sm font-bold text-gray-900">
+          {bundle.tier === 'budget' && '💰 Budget Bundle'}
+          {bundle.tier === 'classic' && '⭐ Recommended Bundle'}
+          {bundle.tier === 'premium' && '👑 Premium Bundle'}
+        </h4>
+        <button onClick={onClose} className="text-gray-400 hover:text-gray-600 text-lg">×</button>
+      </div>
+
+      {/* Products list with quantity controls */}
+      <div className="space-y-2 max-h-48 overflow-y-auto">
+        {bundle.items.map((item) => (
+          <div key={item.product_id} className="flex items-center gap-2 p-2 bg-gray-50 rounded-lg">
+            {/* Image */}
+            {item.image_url ? (
+              <img src={item.image_url} alt={item.name} className="w-10 h-10 rounded object-cover flex-shrink-0"
+                onError={(e) => { e.target.src = 'https://via.placeholder.com/40x40?text=' + item.brand?.charAt(0); }} />
+            ) : (
+              <div className="w-10 h-10 rounded bg-orange-100 flex items-center justify-center text-orange-600 font-bold text-sm flex-shrink-0">
+                {item.brand?.charAt(0) || 'P'}
+              </div>
+            )}
+
+            {/* Details */}
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-medium text-gray-900 truncate">{item.name}</p>
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-bold text-gray-900">Rs.{item.discount_price || item.price}</span>
+                {item.discount_price && item.discount_price < item.price && (
+                  <span className="text-xs text-gray-400 line-through">Rs.{item.price}</span>
+                )}
+                {item.product_url && (
+                  <a href={item.product_url} target="_blank" rel="noopener noreferrer"
+                    className="text-blue-500 hover:text-blue-700 text-xs underline">
+                    View
+                  </a>
+                )}
+              </div>
+            </div>
+
+            {/* Quantity controls */}
+            <div className="flex items-center gap-1 flex-shrink-0">
+              <button
+                onClick={() => updateQty(item.product_id, -1)}
+                className="w-6 h-6 rounded bg-gray-200 hover:bg-gray-300 flex items-center justify-center text-xs font-bold"
+              >-</button>
+              <span className="w-6 text-center text-xs font-medium">{quantities[item.product_id]}</span>
+              <button
+                onClick={() => updateQty(item.product_id, 1)}
+                className="w-6 h-6 rounded bg-gray-200 hover:bg-gray-300 flex items-center justify-center text-xs font-bold"
+              >+</button>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Total + Add to Cart */}
+      <div className="border-t pt-3 flex items-center justify-between">
+        <div>
+          <span className="text-xs text-gray-500">Total:</span>
+          <span className="text-lg font-bold text-gray-900 ml-1">Rs.{totalWithQuantities.toFixed(0)}</span>
+        </div>
+        <button
+          onClick={() => onAddToCart(bundle)}
+          className="bg-orange-400 hover:bg-orange-500 text-sm font-medium py-2 px-4 rounded-lg text-gray-900"
+        >
+          Add All to Cart
+        </button>
+      </div>
+    </div>
   );
 };
 

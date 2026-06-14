@@ -19,7 +19,6 @@ from app.database import dispose_engine
 from app.exceptions import AppException
 from app.middleware.request_id import RequestIDMiddleware
 from app.middleware.timing import RequestTimingMiddleware
-from app.redis_client import pool as redis_pool
 from app.routers import clarification, health, intent, metrics
 from app.routers import cart, checkout, buy_again
 
@@ -103,6 +102,7 @@ def create_app() -> FastAPI:
     async def shutdown_event() -> None:
         """Dispose database engine and close Redis pool on shutdown."""
         await dispose_engine()
+        from app.redis_client import pool as redis_pool
         if redis_pool is not None:
             await redis_pool.aclose()
 
