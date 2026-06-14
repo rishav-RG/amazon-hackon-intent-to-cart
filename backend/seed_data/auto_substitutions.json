@@ -1,0 +1,162 @@
+[
+  {
+    "original_product_id": "BB-0011",
+    "replacement_product_id": "BB-0013",
+    "original_name": "Organic Kadha Kwath/Kasaya With Jaggery/Bella - Immunity Booster",
+    "replacement_name": "Organic Sprouted Ragi Powder/Ragi Hittu",
+    "sub_category": "Organic Flours",
+    "price_diff": 55.0
+  },
+  {
+    "original_product_id": "BB-0013",
+    "replacement_product_id": "BB-0011",
+    "original_name": "Organic Sprouted Ragi Powder/Ragi Hittu",
+    "replacement_name": "Organic Kadha Kwath/Kasaya With Jaggery/Bella - Immunity Booster",
+    "sub_category": "Organic Flours",
+    "price_diff": -55.0
+  },
+  {
+    "original_product_id": "BB-0028",
+    "replacement_product_id": "BB-0029",
+    "original_name": "Soya Drink Sugar Free",
+    "replacement_name": "Ready To Drink Protein Milkshake - Cold Coffee",
+    "sub_category": "Flavoured, Soya Milk",
+    "price_diff": 10.0
+  },
+  {
+    "original_product_id": "BB-0029",
+    "replacement_product_id": "BB-0028",
+    "original_name": "Ready To Drink Protein Milkshake - Cold Coffee",
+    "replacement_name": "Soya Drink Sugar Free",
+    "sub_category": "Flavoured, Soya Milk",
+    "price_diff": -10.0
+  },
+  {
+    "original_product_id": "BB-0049",
+    "replacement_product_id": "BB-0050",
+    "original_name": "Sauce - Sweet Chill  (Sugar Free)",
+    "replacement_name": "Marinade Sauce - Medium Peri Peri",
+    "sub_category": "Thai & Asian Sauces",
+    "price_diff": 65.0
+  },
+  {
+    "original_product_id": "BB-0050",
+    "replacement_product_id": "BB-0049",
+    "original_name": "Marinade Sauce - Medium Peri Peri",
+    "replacement_name": "Sauce - Sweet Chill  (Sugar Free)",
+    "sub_category": "Thai & Asian Sauces",
+    "price_diff": -65.0
+  },
+  {
+    "original_product_id": "BB-0061",
+    "replacement_product_id": "BB-0062",
+    "original_name": "Organic Tulsi Ginger Herbal Infusion Tea Bag",
+    "replacement_name": "Organic Tulsi & Honey Chamomile",
+    "sub_category": "Tea Bags",
+    "price_diff": 29.0
+  },
+  {
+    "original_product_id": "BB-0062",
+    "replacement_product_id": "BB-0061",
+    "original_name": "Organic Tulsi & Honey Chamomile",
+    "replacement_name": "Organic Tulsi Ginger Herbal Infusion Tea Bag",
+    "sub_category": "Tea Bags",
+    "price_diff": -29.0
+  },
+  {
+    "original_product_id": "BB-0072",
+    "replacement_product_id": "BB-0073",
+    "original_name": "Red Velvet Sandwich Biscuit - Limited Edition, Yummy Treat",
+    "replacement_name": "Vanilla Wafers",
+    "sub_category": "Cream Biscuits & Wafers",
+    "price_diff": 10.0
+  },
+  {
+    "original_product_id": "BB-0073",
+    "replacement_product_id": "BB-0072",
+    "original_name": "Vanilla Wafers",
+    "replacement_name": "Red Velvet Sandwich Biscuit - Limited Edition, Yummy Treat",
+    "sub_category": "Cream Biscuits & Wafers",
+    "price_diff": -10.0
+  },
+  {
+    "original_product_id": "BB-0113",
+    "replacement_product_id": "BB-0112",
+    "original_name": "Matic Detergent Powder - Top Load",
+    "replacement_name": "Detergent Washing Powder - Matic Front Load",
+    "sub_category": "Detergent Powder, Liquid",
+    "price_diff": -225.0
+  },
+  {
+    "original_product_id": "BB-0123",
+    "replacement_product_id": "BB-0124",
+    "original_name": "Stainless Steel Idli Plate With Stand, 3-Rack Plates, 15 Idlis - Medium",
+    "replacement_name": "Stainless Steel Dinner Set - Mirror Finish",
+    "sub_category": "Plates & Tumblers",
+    "price_diff": 126.0
+  },
+  {
+    "original_product_id": "BB-0124",
+    "replacement_product_id": "BB-0123",
+    "original_name": "Stainless Steel Dinner Set - Mirror Finish",
+    "replacement_name": "Stainless Steel Idli Plate With Stand, 3-Rack Plates, 15 Idlis - Medium",
+    "sub_category": "Plates & Tumblers",
+    "price_diff": -126.0
+  },
+  {
+    "original_product_id": "BB-0132",
+    "replacement_product_id": "BB-0133",
+    "original_name": "Baby Skin Cream - REG, BT",
+    "replacement_name": "Baby Lotion",
+    "sub_category": "Baby Creams & Lotions",
+    "price_diff": 25.0
+  },
+  {
+    "original_product_id": "BB-0133",
+    "replacement_product_id": "BB-0132",
+    "original_name": "Baby Lotion",
+    "replacement_name": "Baby Skin Cream - REG, BT",
+    "sub_category": "Baby Creams & Lotions",
+    "price_diff": -25.0
+  },
+  {
+    "original_product_id": "BB-0133",
+    "replacement_product_id": "BB-0134",
+    "original_name": "Baby Lotion",
+    "replacement_name": "Baby Moisturizing Lotion",
+    "sub_category": "Baby Creams & Lotions",
+    "price_diff": 45.0
+  },
+  {
+    "original_product_id": "BB-0134",
+    "replacement_product_id": "BB-0133",
+    "original_name": "Baby Moisturizing Lotion",
+    "replacement_name": "Baby Lotion",
+    "sub_category": "Baby Creams & Lotions",
+    "price_diff": -45.0
+  },
+  {
+    "original_product_id": "BB-0138",
+    "replacement_product_id": "BB-0135",
+    "original_name": "Wonder Pullups Diaper - Super Soft Feel, Wetness Indicator, Small, 4-7 kg",
+    "replacement_name": "Pant Diaper Pull Up - XXXL, With Breathable Cotton, Leakage Precention",
+    "sub_category": "Diapers",
+    "price_diff": -100.0
+  },
+  {
+    "original_product_id": "BB-0140",
+    "replacement_product_id": "BB-0141",
+    "original_name": "Handbag Hair Set - Comb, Brush & Mirror, Lilac Glitter Look, Pink, DP100134",
+    "replacement_name": "Infant Nail Scissors",
+    "sub_category": "Combs, Brushes, Clippers",
+    "price_diff": 146.0
+  },
+  {
+    "original_product_id": "BB-0141",
+    "replacement_product_id": "BB-0140",
+    "original_name": "Infant Nail Scissors",
+    "replacement_name": "Handbag Hair Set - Comb, Brush & Mirror, Lilac Glitter Look, Pink, DP100134",
+    "sub_category": "Combs, Brushes, Clippers",
+    "price_diff": -146.0
+  }
+]

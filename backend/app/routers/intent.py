@@ -47,7 +47,7 @@ async def classify_intent(
     7. Return IntentResponse
     """
     # Step 1: Classify intent (AppException from classify propagates to global handler)
-    result = intent_engine.classify(request.text)
+    result = await intent_engine.classify_hybrid(request.text)
 
     # Step 2: Check Redis cache for bundle
     cached_bundle = None
@@ -78,9 +78,24 @@ async def classify_intent(
     # Step 4: If confidence < 0.7, initiate clarification flow
     clarification_question = None
     if result.confidence < 0.7:
-        clarification_question = clarification_engine.get_first_question(
-            result.intent_type
-        )
+        # Try LLM-powered smart clarification first
+        try:
+            smart_question = await clarification_engine.get_next_question_smart(
+                user_text=request.text,
+                intent_type=result.intent_type,
+                confidence=result.confidence,
+                entities=result.entities,
+                previous_questions=[],
+                answered_count=0,
+            )
+            clarification_question = smart_question or clarification_engine.get_first_question(
+                result.intent_type
+            )
+        except Exception:
+            # Fallback to static question on any error
+            clarification_question = clarification_engine.get_first_question(
+                result.intent_type
+            )
         # Store clarification session in Redis with TTL 900s
         session_data = json.dumps({
             "intent_id": str(intent.id),
@@ -120,4 +135,6 @@ async def classify_intent(
         entities=result.entities,
         clarification_question=clarification_question,
         cached_bundle=cached_bundle,
+        llm_used=result.llm_used,
+        fallback=result.fallback,
     )

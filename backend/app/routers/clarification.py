@@ -81,8 +81,22 @@ async def post_clarification(
     db.add(clarification)
     await db.commit()
 
-    # 5. Get next question
-    next_question = get_next_question(intent.intent_type, answered_count + 1)
+    # 5. Get next question (try LLM-powered smart question, fallback to static)
+    try:
+        from app.services.clarification_engine import get_next_question_smart
+        # Collect previous questions from session
+        previous_questions = [current_question]
+        next_question = await get_next_question_smart(
+            user_text=intent.raw_text,
+            intent_type=intent.intent_type,
+            confidence=intent.confidence,
+            entities=[],  # entities not stored in session currently
+            previous_questions=previous_questions,
+            answered_count=answered_count + 1,
+        )
+    except Exception:
+        # Fallback to static questions
+        next_question = get_next_question(intent.intent_type, answered_count + 1)
 
     # 6. Handle next state
     if next_question is not None:

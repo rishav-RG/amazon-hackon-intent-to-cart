@@ -70,6 +70,9 @@ class Config(BaseSettings):
     
     # Dev B - Bundle Cache TTL
     BUNDLE_CACHE_TTL_SECONDS: int = 600  # 10 minutes
+    
+    # Gemini LLM Config
+    GEMINI_API_KEY: str = ""  # Required for LLM-based classification + clarification
 
     model_config = SettingsConfigDict(
         env_file=".env",

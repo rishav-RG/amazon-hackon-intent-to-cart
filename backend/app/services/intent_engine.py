@@ -1,13 +1,30 @@
 """
-Intent Engine — Keyword-based classifier for user shopping intents.
+Intent Engine — Hybrid classifier for user shopping intents.
 
-Classifies raw text into one of 8 intent types using keyword overlap scoring,
-computes a confidence score, and extracts noun-phrase entities.
+Architecture (matches the Architecture Overview diagram):
+    1. Validate input (unchanged)
+    2. Keyword classifier (< 1ms)
+        ├─ confidence ≥ 0.7 → fast path: return immediately
+        └─ confidence < 0.7
+              ├─ Check semantic/LLM result cache (Redis)
+              │     hit → return cached result
+              └─ miss
+                    ├─ Semantic model (async, 3s timeout)
+                    │     success → cache + return
+                    └─ timeout/error
+                          fallback to keyword result → return
+
+The ClassificationResult now includes:
+    - llm_used: bool — whether semantic model was invoked
+    - fallback: bool — whether keyword fallback was used after semantic failure
 """
 
+import logging
 from dataclasses import dataclass, field
 
 from app.exceptions import AppException, INVALID_INTENT_TEXT
+
+logger = logging.getLogger(__name__)
 
 
 @dataclass
@@ -17,6 +34,8 @@ class ClassificationResult:
     intent_type: str
     confidence: float
     entities: list[str] = field(default_factory=list)
+    llm_used: bool = False
+    fallback: bool = False
 
 
 INTENT_TYPES: list[str] = [
@@ -113,7 +132,10 @@ def _extract_entities(tokens: list[str]) -> list[str]:
 
 def classify(raw_text: str) -> ClassificationResult:
     """
-    Classify raw text into an intent type using keyword matching.
+    Classify raw text using keyword matching (fast path).
+
+    This is the synchronous keyword-only classifier. For the full hybrid
+    flow (keyword → semantic fallback), use `classify_hybrid()`.
 
     Algorithm:
     1. Validate text (1-500 chars after strip, not whitespace-only)
@@ -189,6 +211,8 @@ def classify(raw_text: str) -> ClassificationResult:
             intent_type="search_product",
             confidence=0.0,
             entities=[],
+            llm_used=False,
+            fallback=False,
         )
 
     # Step 6: Compute confidence as matched_keywords / total_keywords (capped at 1.0)
@@ -202,4 +226,103 @@ def classify(raw_text: str) -> ClassificationResult:
         intent_type=best_type,
         confidence=confidence,
         entities=entities,
+        llm_used=False,
+        fallback=False,
     )
+
+
+# ──────────────────────────────────────────────────────────────────────────────
+# Hybrid Classifier (Keyword + Semantic Fallback)
+# ──────────────────────────────────────────────────────────────────────────────
+
+FAST_PATH_THRESHOLD = 0.7
+
+
+async def classify_hybrid(raw_text: str) -> ClassificationResult:
+    """
+    Hybrid intent classification matching the Architecture Overview diagram:
+
+        1. Validate input (unchanged)
+        2. Keyword classifier (< 1ms)
+            ├─ confidence ≥ 0.7 → fast path: return immediately
+            └─ confidence < 0.7
+                  ├─ Check LLM result cache (Redis)
+                  │     hit → return cached result
+                  └─ miss
+                        ├─ LLM client (async, 3s timeout)
+                        │     success → cache + return
+                        └─ timeout/error
+                              fallback to keyword result → return
+
+    Returns:
+        ClassificationResult with llm_used and fallback flags set accordingly.
+    """
+    # Step 1-7: Run keyword classifier first (always, < 1ms)
+    keyword_result = classify(raw_text)
+
+    # Fast path: high confidence keyword match
+    if keyword_result.confidence >= FAST_PATH_THRESHOLD:
+        logger.debug(
+            "Fast path: keyword confidence %.2f ≥ %.2f for '%s...'",
+            keyword_result.confidence, FAST_PATH_THRESHOLD, raw_text[:30]
+        )
+        return keyword_result
+
+    # Slow path: keyword confidence is low, invoke LLM classifier
+    logger.info(
+        "Low keyword confidence (%.2f) — invoking LLM classifier for '%s...'",
+        keyword_result.confidence, raw_text[:50]
+    )
+
+    try:
+        from app.services.llm_client import classify_intent_llm
+
+        llm_result = await classify_intent_llm(raw_text)
+
+        if llm_result is not None and llm_result.get("confidence", 0) >= 0.4:
+            # LLM returned a usable result
+            # Merge entities: LLM entities + keyword entities (deduplicated)
+            llm_entities = llm_result.get("entities", [])
+            keyword_entities = keyword_result.entities
+            merged_entities = list(dict.fromkeys(llm_entities + keyword_entities))
+
+            return ClassificationResult(
+                intent_type=llm_result["intent_type"],
+                confidence=llm_result["confidence"],
+                entities=merged_entities,
+                llm_used=True,
+                fallback=False,
+            )
+        else:
+            # LLM result too low confidence or None — try semantic, then keyword
+            logger.info(
+                "LLM result insufficient (got: %s) — trying semantic fallback",
+                llm_result,
+            )
+    except Exception as exc:
+        logger.error("LLM classifier error: %s — trying semantic fallback", exc)
+
+    # Secondary fallback: semantic classifier (if sentence-transformers available)
+    try:
+        from app.services.semantic_classifier import classify_semantic
+
+        semantic_result = await classify_semantic(raw_text)
+
+        if semantic_result is not None and semantic_result["confidence"] >= 0.4:
+            entities = keyword_result.entities
+            return ClassificationResult(
+                intent_type=semantic_result["intent_type"],
+                confidence=semantic_result["confidence"],
+                entities=entities,
+                llm_used=True,  # semantic model counts as "llm_used" in response
+                fallback=False,
+            )
+    except ImportError:
+        logger.debug("sentence-transformers not installed, skipping semantic fallback")
+    except Exception as exc:
+        logger.error("Semantic classifier error: %s", exc)
+
+    # Final fallback: return keyword result
+    logger.info("All fallbacks exhausted — using keyword result")
+    keyword_result.fallback = True
+    return keyword_result

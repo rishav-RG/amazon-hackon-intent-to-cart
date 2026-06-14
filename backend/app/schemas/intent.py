@@ -41,3 +41,5 @@ class IntentResponse(BaseModel):
     entities: list[str] = Field(default_factory=list, max_length=50)
     clarification_question: str | None = None
     cached_bundle: dict | None = None
+    llm_used: bool = False
+    fallback: bool = False

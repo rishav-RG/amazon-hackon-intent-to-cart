@@ -72,7 +72,10 @@ def get_first_question(intent_type: str) -> str:
 
 def get_next_question(intent_type: str, answered_count: int) -> str | None:
     """
-    Return the next clarification question or None if clarification is complete.
+    Return the next static clarification question or None if complete.
+
+    This is the fallback when LLM-generated questions are unavailable.
+    For LLM-powered contextual questions, use get_next_question_smart().
 
     Args:
         intent_type: The type of intent being clarified.
@@ -93,3 +96,87 @@ def get_next_question(intent_type: str, answered_count: int) -> str | None:
     if answered_count >= MAX_CLARIFICATION_QUESTIONS:
         return None
     return CLARIFICATION_MAP[intent_type][answered_count]
+
+
+async def get_next_question_smart(
+    user_text: str,
+    intent_type: str,
+    confidence: float,
+    entities: list[str],
+    previous_questions: list[str],
+    answered_count: int,
+) -> str | None:
+    """
+    Generate a contextual clarification question using Gemini LLM.
+    Falls back to static CLARIFICATION_MAP if LLM is unavailable.
+
+    Architecture (from diagram):
+        entities present AND intent high-confidence?
+            YES → skip or ask only missing fields
+            NO →
+                LLM available? → generate contextual question
+                LLM unavailable? → static CLARIFICATION_MAP fallback
+
+    Args:
+        user_text: Original user input text
+        intent_type: Classified intent type
+        confidence: Classification confidence score
+        entities: Extracted entities from the text
+        previous_questions: Questions already asked in this session
+        answered_count: Number of questions already answered
+
+    Returns:
+        A clarification question string, or None if clarification is complete.
+    """
+    import logging
+    _logger = logging.getLogger(__name__)
+
+    # Check if max questions reached
+    if answered_count >= MAX_CLARIFICATION_QUESTIONS:
+        return None
+
+    # If intent type not recognized, reject
+    if intent_type not in CLARIFICATION_MAP:
+        raise AppException(
+            error_code=INTENT_NOT_FOUND[0],
+            message=f"Intent type '{intent_type}' is not recognized",
+            status_code=INTENT_NOT_FOUND[1],
+        )
+
+    # Smart skip: if entities cover the question topic, skip it
+    if entities and confidence >= 0.5 and answered_count == 0:
+        static_q = CLARIFICATION_MAP[intent_type][0]
+        quantity_words = {"1", "2", "3", "4", "5", "kg", "litre", "pack", "dozen"}
+        has_quantity = any(
+            word in " ".join(entities).lower() for word in quantity_words
+        )
+        if has_quantity and "how many" in static_q.lower():
+            answered_count += 1
+            if answered_count >= MAX_CLARIFICATION_QUESTIONS:
+                return None
+
+    # Try LLM-generated question
+    try:
+        from app.services.llm_client import generate_clarification_question
+
+        llm_question = await generate_clarification_question(
+            user_text=user_text,
+            intent_type=intent_type,
+            confidence=confidence,
+            entities=entities,
+            previous_questions=previous_questions,
+        )
+
+        if llm_question:
+            return llm_question
+    except ImportError:
+        _logger.debug("google-generativeai not installed, using static fallback")
+    except Exception as exc:
+        _logger.warning(
+            "LLM clarification generation failed: %s — using static fallback", exc
+        )
+
+    # Fallback to static question
+    if answered_count < len(CLARIFICATION_MAP[intent_type]):
+        return CLARIFICATION_MAP[intent_type][answered_count]
+    return None
