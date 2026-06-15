@@ -77,21 +77,27 @@ def should_stop(context: ClarificationContext) -> bool:
 
     Returns True when ANY of these conditions are met:
     1. Hard cap: questions_asked >= max_questions (5)
-    2. Mandatory + sufficient: quantity AND budget filled, plus entities or theme
+    2. All three mandatory slots filled: entities/theme + quantity + budget
     3. High-confidence initial parse: confidence >= 0.9 with entities + theme
+    
+    MANDATORY constraints (all three required before stopping):
+    - Entity/product specificity: entities >= 1 OR shopping_theme is set
+    - Quantity/serving size
+    - Budget/price range
     """
     c = context.constraints
     has_qty = _has_quantity(c)
     has_bgt = _has_budget(c)
     has_entities = len(context.entities) >= 1
     has_theme = context.shopping_theme is not None
+    has_product_context = has_entities or has_theme
 
     # 1. Hard cap
     if context.questions_asked >= context.max_questions:
         return True
 
-    # 2. Mandatory slots filled + enough retrieval context
-    if has_qty and has_bgt and (has_entities or has_theme):
+    # 2. All THREE mandatory slots filled
+    if has_qty and has_bgt and has_product_context:
         return True
 
     # 3. High confidence initial parse with rich context
@@ -107,22 +113,35 @@ def should_stop(context: ClarificationContext) -> bool:
 
 def _get_mandatory_fallback(context: ClarificationContext) -> Optional[str]:
     """
-    If ≤ 2 question slots remain and mandatory constraints are missing,
-    force-ask for them instead of delegating to the LLM.
+    Force-ask mandatory constraints when they're missing.
 
-    Priority: quantity first, then budget.
+    Mandatory constraints (in priority order):
+    1. Entity/product specificity — ALWAYS ask first if missing (regardless of remaining slots)
+    2. Quantity / serving size — ask when ≤ 2 slots remain OR entity is filled
+    3. Budget / price range — ask when ≤ 2 slots remain OR entity+quantity filled
+
+    This ensures the system never proceeds to retrieval without knowing
+    WHAT the user wants, HOW MUCH, and their BUDGET.
     """
     remaining = context.max_questions - context.questions_asked
     c = context.constraints
+    has_entities = len(context.entities) >= 1
+    has_theme = context.shopping_theme is not None
+    has_product_context = has_entities or has_theme
 
-    if remaining <= 2:
-        if not _has_quantity(c):
-            # Contextual quantity question based on theme
-            if context.shopping_theme and "ingredient" in (context.shopping_theme or ""):
-                return "How many people are you planning to serve?"
-            return "How much quantity do you need?"
-        if not _has_budget(c):
-            return "Do you have a budget or price range in mind?"
+    # Priority 1: ALWAYS ask what the user wants if we don't know
+    if not has_product_context:
+        return "What specific products or items are you looking for?"
+
+    # Priority 2: Quantity — force when remaining ≤ 2 OR when we have product context
+    if not _has_quantity(c) and (remaining <= 2 or has_product_context):
+        if context.shopping_theme and "ingredient" in (context.shopping_theme or ""):
+            return "How many people are you planning to serve?"
+        return "How much quantity do you need?"
+
+    # Priority 3: Budget — force when remaining ≤ 2 OR when we have product+quantity
+    if not _has_budget(c) and (remaining <= 2 or (_has_quantity(c) and has_product_context)):
+        return "Do you have a budget or price range in mind?"
 
     return None
 
@@ -198,22 +217,43 @@ def merge_answer_into_constraints(
 
 
 def extract_entities_from_answer(answer: str, existing_entities: list[str]) -> list[str]:
-    """Extract potential new entities from a clarification answer."""
-    # Simple heuristic: words >3 chars that aren't common words
+    """Extract potential new entities from a clarification answer.
+    
+    Handles comma-separated lists and common product names.
+    """
+    # Common stop words that aren't product entities
     stop_words = {
         "want", "need", "like", "would", "please", "about", "around",
         "prefer", "looking", "something", "anything", "good", "best",
         "have", "with", "from", "that", "this", "some", "also", "just",
         "maybe", "think", "know", "sure", "okay", "yeah", "yes", "no",
+        "for", "and", "the", "not", "any", "but", "few", "lot", "many",
+        "more", "less", "much", "very", "really", "quite", "only",
     }
-    tokens = answer.strip().split()
+    
+    existing_lower = {e.lower() for e in existing_entities}
     new_entities = []
-    for token in tokens:
-        clean = token.strip(",.!?;:").lower()
-        if len(clean) > 3 and clean not in stop_words and clean not in [e.lower() for e in existing_entities]:
-            # Check if it looks like a product/ingredient word
-            if clean.isalpha():
-                new_entities.append(token.strip(",.!?;:"))
+    
+    # Split by commas first to handle "chips, namkeen, biscuits"
+    parts = [p.strip() for p in answer.replace(" and ", ",").split(",")]
+    
+    for part in parts:
+        # Clean the part
+        cleaned = part.strip().strip(",.!?;:")
+        if not cleaned:
+            continue
+        
+        # If the whole comma-separated chunk looks like a product name
+        words = cleaned.split()
+        # Filter out pure stop words
+        meaningful_words = [w for w in words if w.lower() not in stop_words and len(w) > 1]
+        
+        if meaningful_words:
+            entity = " ".join(meaningful_words)
+            if entity.lower() not in existing_lower and len(entity) > 2:
+                new_entities.append(entity)
+                existing_lower.add(entity.lower())
+    
     return new_entities
 
 
@@ -382,15 +422,24 @@ _FALLBACK_QUESTIONS = {
 def _static_fallback(context: ClarificationContext) -> Optional[dict]:
     """
     Fallback to a static question when LLM is unavailable.
-    Skips questions whose slots are already filled.
+    Follows mandatory priority: entity → quantity → budget.
     """
-    # Check unfilled mandatory slots first
+    has_entities = len(context.entities) >= 1
+    has_theme = context.shopping_theme is not None
+
+    # Priority 1: Must know what the user wants
+    if not has_entities and not has_theme:
+        return {"question": "What specific products or items are you looking for?", "slot": "entity"}
+
+    # Priority 2: Quantity
     if not _has_quantity(context.constraints):
         return {"question": "How much quantity do you need?", "slot": "quantity"}
+
+    # Priority 3: Budget
     if not _has_budget(context.constraints):
         return {"question": "Do you have a budget in mind?", "slot": "budget"}
 
-    # Use static map
+    # Additional context questions from static map
     questions = _FALLBACK_QUESTIONS.get(context.intent_type, _FALLBACK_QUESTIONS["search_product"])
     idx = context.questions_asked
     if idx < len(questions):
