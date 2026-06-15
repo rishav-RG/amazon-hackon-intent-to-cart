@@ -1,0 +1,178 @@
+[
+  {
+    "original_product_id": "BB-0024",
+    "replacement_product_id": "BB-0174",
+    "original_name": "Organic - Sona Masoori Raw Rice/Akki",
+    "replacement_name": "Organic - Quinoa",
+    "sub_category": "Organic Rice, Other Rice",
+    "price_diff": -20.0
+  },
+  {
+    "original_product_id": "BB-0174",
+    "replacement_product_id": "BB-0024",
+    "original_name": "Organic - Quinoa",
+    "replacement_name": "Organic - Sona Masoori Raw Rice/Akki",
+    "sub_category": "Organic Rice, Other Rice",
+    "price_diff": 20.0
+  },
+  {
+    "original_product_id": "BB-0036",
+    "replacement_product_id": "BB-0181",
+    "original_name": "Rice - Flour",
+    "replacement_name": "Nature’s Superfoods Gluten Free Flour - Rich In Dietary Fibre, Protein, Magnesium & Iron",
+    "sub_category": "Rice & Other Flours",
+    "price_diff": 77.0
+  },
+  {
+    "original_product_id": "BB-0181",
+    "replacement_product_id": "BB-0036",
+    "original_name": "Nature’s Superfoods Gluten Free Flour - Rich In Dietary Fibre, Protein, Magnesium & Iron",
+    "replacement_name": "Rice - Flour",
+    "sub_category": "Rice & Other Flours",
+    "price_diff": -77.0
+  },
+  {
+    "original_product_id": "BB-0040",
+    "replacement_product_id": "BB-0168",
+    "original_name": "Strawberry Conserve",
+    "replacement_name": "Almond Butter - Unsweetened, Creamy, Rich In Antioxidant, Protein & Fibre, Lactose Free",
+    "sub_category": "Jams, Marmalade, Spreads",
+    "price_diff": 1380.0
+  },
+  {
+    "original_product_id": "BB-0168",
+    "replacement_product_id": "BB-0040",
+    "original_name": "Almond Butter - Unsweetened, Creamy, Rich In Antioxidant, Protein & Fibre, Lactose Free",
+    "replacement_name": "Strawberry Conserve",
+    "sub_category": "Jams, Marmalade, Spreads",
+    "price_diff": -1380.0
+  },
+  {
+    "original_product_id": "BB-0048",
+    "replacement_product_id": "BB-0167",
+    "original_name": "Chocolate Hazelnut Spread",
+    "replacement_name": "Natural Peanut Butter - Unsweetened, High In Protein, Creamy, Helps Manage Weight",
+    "sub_category": "Chocolate, Peanut Spread",
+    "price_diff": -59.7
+  },
+  {
+    "original_product_id": "BB-0167",
+    "replacement_product_id": "BB-0048",
+    "original_name": "Natural Peanut Butter - Unsweetened, High In Protein, Creamy, Helps Manage Weight",
+    "replacement_name": "Chocolate Hazelnut Spread",
+    "sub_category": "Chocolate, Peanut Spread",
+    "price_diff": 59.7
+  },
+  {
+    "original_product_id": "BB-0087",
+    "replacement_product_id": "BB-0166",
+    "original_name": "Karela Jamun Juice",
+    "replacement_name": "Painquit Tablets - Ayurvedic, Bones & Joints Supplement, For Pain Relief",
+    "sub_category": "Ayurveda",
+    "price_diff": 92.25
+  },
+  {
+    "original_product_id": "BB-0166",
+    "replacement_product_id": "BB-0087",
+    "original_name": "Painquit Tablets - Ayurvedic, Bones & Joints Supplement, For Pain Relief",
+    "replacement_name": "Karela Jamun Juice",
+    "sub_category": "Ayurveda",
+    "price_diff": -92.25
+  },
+  {
+    "original_product_id": "BB-0130",
+    "replacement_product_id": "BB-0142",
+    "original_name": "Natural Breathe Easy Vapour Roll-On For Cold & Nasal Congestion, With Wintergreen & Eucalyptus Oil.",
+    "replacement_name": "Breathe Easy Vapour Roll - On For Babies",
+    "sub_category": "Baby Health",
+    "price_diff": 151.68
+  },
+  {
+    "original_product_id": "BB-0142",
+    "replacement_product_id": "BB-0130",
+    "original_name": "Breathe Easy Vapour Roll - On For Babies",
+    "replacement_name": "Natural Breathe Easy Vapour Roll-On For Cold & Nasal Congestion, With Wintergreen & Eucalyptus Oil.",
+    "sub_category": "Baby Health",
+    "price_diff": -151.68
+  },
+  {
+    "original_product_id": "BB-0131",
+    "replacement_product_id": "BB-0143",
+    "original_name": "Baby Accessories & Vegetable Liquid Cleanser",
+    "replacement_name": "Baby Laundry Liquid Detergent - Plant Based With Bio-Enzymes & Lemon Oil",
+    "sub_category": "Baby Laundry",
+    "price_diff": 128.5
+  },
+  {
+    "original_product_id": "BB-0143",
+    "replacement_product_id": "BB-0131",
+    "original_name": "Baby Laundry Liquid Detergent - Plant Based With Bio-Enzymes & Lemon Oil",
+    "replacement_name": "Baby Accessories & Vegetable Liquid Cleanser",
+    "sub_category": "Baby Laundry",
+    "price_diff": -128.5
+  },
+  {
+    "original_product_id": "BB-0132",
+    "replacement_product_id": "BB-0144",
+    "original_name": "Baby Powder",
+    "replacement_name": "Baby Powder With Fragrance",
+    "sub_category": "Baby Powder",
+    "price_diff": -19.45
+  },
+  {
+    "original_product_id": "BB-0144",
+    "replacement_product_id": "BB-0132",
+    "original_name": "Baby Powder With Fragrance",
+    "replacement_name": "Baby Powder",
+    "sub_category": "Baby Powder",
+    "price_diff": 19.45
+  },
+  {
+    "original_product_id": "BB-0133",
+    "replacement_product_id": "BB-0145",
+    "original_name": "Perfumed Water - Sweet, Natural Sensation",
+    "replacement_name": "Nourishing Baby Soap With Almond & Milk Extracts",
+    "sub_category": "Baby Bath",
+    "price_diff": -365.3
+  },
+  {
+    "original_product_id": "BB-0145",
+    "replacement_product_id": "BB-0133",
+    "original_name": "Nourishing Baby Soap With Almond & Milk Extracts",
+    "replacement_name": "Perfumed Water - Sweet, Natural Sensation",
+    "sub_category": "Baby Bath",
+    "price_diff": 365.3
+  },
+  {
+    "original_product_id": "BB-0134",
+    "replacement_product_id": "BB-0146",
+    "original_name": "Infant Nail Scissors",
+    "replacement_name": "Handbag Hair Set - Comb, Brush & Mirror, Lilac Glitter Look, Pink, DP100134",
+    "sub_category": "Combs, Brushes, Clippers",
+    "price_diff": -181.0
+  },
+  {
+    "original_product_id": "BB-0146",
+    "replacement_product_id": "BB-0134",
+    "original_name": "Handbag Hair Set - Comb, Brush & Mirror, Lilac Glitter Look, Pink, DP100134",
+    "replacement_name": "Infant Nail Scissors",
+    "sub_category": "Combs, Brushes, Clippers",
+    "price_diff": 181.0
+  },
+  {
+    "original_product_id": "BB-0135",
+    "replacement_product_id": "BB-0147",
+    "original_name": "Happy Baby Gift Pack",
+    "replacement_name": "Baby Care Collection - with Organic Cotton Bib",
+    "sub_category": "Baby Gift Sets",
+    "price_diff": -711.25
+  },
+  {
+    "original_product_id": "BB-0147",
+    "replacement_product_id": "BB-0135",
+    "original_name": "Baby Care Collection - with Organic Cotton Bib",
+    "replacement_name": "Happy Baby Gift Pack",
+    "sub_category": "Baby Gift Sets",
+    "price_diff": 711.25
+  }
+]

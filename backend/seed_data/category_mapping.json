@@ -1,0 +1,13 @@
+{
+  "Fruits & Vegetables": "meal_preparation",
+  "Foodgrains, Oil & Masala": "meal_preparation",
+  "Bakery, Cakes & Dairy": "meal_preparation",
+  "Eggs, Meat & Fish": "meal_preparation",
+  "Gourmet & World Food": "meal_preparation",
+  "Beverages": "beverages_snacks",
+  "Snacks & Branded Foods": "beverages_snacks",
+  "Beauty & Hygiene": "personal_care",
+  "Cleaning & Household": "cleaning",
+  "Kitchen, Garden & Pets": "pet_care",
+  "Baby Care": "baby_care"
+}

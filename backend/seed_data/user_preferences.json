@@ -1,0 +1,73 @@
+[
+  {
+    "user_id": "user-001",
+    "brand_preferences": {
+      "Barilla": 0.95,
+      "Bertolli": 0.88,
+      "Mutti": 0.92,
+      "India Gate": 0.75,
+      "Local Farm": 0.68
+    },
+    "category_preferences": {
+      "pasta": 0.90,
+      "grains": 0.85,
+      "oils": 0.80,
+      "sauces": 0.88,
+      "herbs": 0.70
+    },
+    "reorder_affinity": {
+      "MP-002": 0.92,
+      "MP-003": 0.87,
+      "MP-004": 0.85,
+      "MP-001": 0.78
+    }
+  },
+  {
+    "user_id": "user-002",
+    "brand_preferences": {
+      "Pampers": 0.98,
+      "Huggies": 0.85,
+      "Johnson's": 0.90,
+      "Gerber": 0.88,
+      "Similac": 0.95
+    },
+    "category_preferences": {
+      "diapers": 0.95,
+      "wipes": 0.92,
+      "bath": 0.88,
+      "formula": 0.98,
+      "food": 0.85
+    },
+    "reorder_affinity": {
+      "BC-001": 0.98,
+      "BC-002": 0.95,
+      "BC-006": 0.92,
+      "BC-003": 0.88,
+      "BC-005": 0.82
+    }
+  },
+  {
+    "user_id": "user-003",
+    "brand_preferences": {
+      "Optimum Nutrition": 0.96,
+      "Clif Bar": 0.88,
+      "Gatorade": 0.85,
+      "Chobani": 0.90,
+      "Blue Diamond": 0.82
+    },
+    "category_preferences": {
+      "supplements": 0.95,
+      "snacks": 0.88,
+      "beverages": 0.82,
+      "dairy": 0.90,
+      "nuts": 0.85
+    },
+    "reorder_affinity": {
+      "FT-001": 0.97,
+      "FT-002": 0.90,
+      "FT-004": 0.88,
+      "FT-005": 0.85,
+      "FT-003": 0.78
+    }
+  }
+]
