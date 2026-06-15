@@ -81,9 +81,16 @@ async def classify_intent(
     await db.refresh(intent)
 
     # Step 4: Clarification via dynamic context-aware system.
-    # Triggers when slots are missing OR confidence < 0.7 (preserves old behavior).
+    # Triggers when:
+    # - LLM/parser says needs_clarification=True, OR
+    # - Confidence < 0.7 (low confidence), OR
+    # - Mandatory constraints are missing (entity/quantity/budget)
     clarification_question = None
-    needs_clar = result.needs_clarification or result.confidence < 0.7
+    has_product_context = bool(result.entities) or bool(result.shopping_theme)
+    has_quantity = result.constraints and result.constraints.get("quantity") is not None
+    has_budget = result.constraints and result.constraints.get("budget") is not None
+    mandatory_missing = not has_product_context or not has_quantity or not has_budget
+    needs_clar = result.needs_clarification or result.confidence < 0.7 or mandatory_missing
     if needs_clar:
         try:
             clarification_question = await clarification_manager.resolve_question(
