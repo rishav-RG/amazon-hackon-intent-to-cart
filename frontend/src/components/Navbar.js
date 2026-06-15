@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useCart } from '../context/CartContext';
 
@@ -8,6 +8,44 @@ const Navbar = ({ onSearch }) => {
   const [searchCategory, setSearchCategory] = useState('All');
   const { getCartItemsCount } = useCart();
   const navigate = useNavigate();
+
+  // Track backend cart items from localStorage
+  const [backendCartCount, setBackendCartCount] = useState(() => {
+    try {
+      const stored = localStorage.getItem('backendCart');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        return (parsed.items || []).reduce((sum, item) => sum + (item.quantity || 1), 0);
+      }
+    } catch {}
+    return 0;
+  });
+
+  const updateBackendCount = useCallback(() => {
+    try {
+      const stored = localStorage.getItem('backendCart');
+      if (stored) {
+        const parsed = JSON.parse(stored);
+        setBackendCartCount((parsed.items || []).reduce((sum, item) => sum + (item.quantity || 1), 0));
+      } else {
+        setBackendCartCount(0);
+      }
+    } catch {
+      setBackendCartCount(0);
+    }
+  }, []);
+
+  useEffect(() => {
+    window.addEventListener('backend-cart-updated', updateBackendCount);
+    // Also listen for storage events from other tabs
+    window.addEventListener('storage', updateBackendCount);
+    return () => {
+      window.removeEventListener('backend-cart-updated', updateBackendCount);
+      window.removeEventListener('storage', updateBackendCount);
+    };
+  }, [updateBackendCount]);
+
+  const totalCartCount = getCartItemsCount() + backendCartCount;
 
   const handleSearch = (e) => {
     e.preventDefault();
@@ -109,13 +147,15 @@ const Navbar = ({ onSearch }) => {
                   <svg className="w-6 h-6 sm:w-8 sm:h-8" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3h2l.4 2M7 13h10l4-8H5.4m0 0L7 13m0 0l-1.5 6H19" />
                   </svg>
-                  {getCartItemsCount() > 0 && (
+                  {totalCartCount > 0 && (
                     <span className="absolute -top-2 -right-2 bg-orange-400 text-black text-xs rounded-full w-4 h-4 sm:w-5 sm:h-5 flex items-center justify-center font-bold">
-                      {getCartItemsCount()}
+                      {totalCartCount}
                     </span>
                   )}
                 </div>
-                <span className="hidden sm:inline ml-1 text-sm font-bold">Cart</span>
+                <span className="hidden sm:inline ml-1 text-sm font-bold">
+                  {totalCartCount > 0 ? `Cart (${totalCartCount})` : 'Cart'}
+                </span>
               </Link>
 
               {/* Mobile Menu Button */}
@@ -157,7 +197,7 @@ const Navbar = ({ onSearch }) => {
           <div className="px-4 py-2 space-y-2">
             <Link to="/" className="block py-3 hover:bg-gray-700 px-3 rounded text-base" onClick={() => setIsMenuOpen(false)}>Home</Link>
             <Link to="/cart" className="block py-3 hover:bg-gray-700 px-3 rounded text-base" onClick={() => setIsMenuOpen(false)}>
-              Cart ({getCartItemsCount()})
+              Cart ({totalCartCount})
             </Link>
             <Link to="/deals" className="block py-3 hover:bg-gray-700 px-3 rounded text-base" onClick={() => setIsMenuOpen(false)}>Today's Deals</Link>
             <Link to="/customer-service" className="block py-3 hover:bg-gray-700 px-3 rounded text-base" onClick={() => setIsMenuOpen(false)}>Customer Service</Link>

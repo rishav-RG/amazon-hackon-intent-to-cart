@@ -143,27 +143,19 @@ const SmartAssistant = () => {
   const handleSelectBundle = async (bundle) => {
     setAddingBundle(bundle.bundle_id);
     try {
-      // First, clear any existing items by sending remove ops for current cart
-      const existingCart = localStorage.getItem('backendCart');
-      if (existingCart) {
-        const parsed = JSON.parse(existingCart);
-        if (parsed.items && parsed.items.length > 0) {
-          const removeOps = parsed.items.map((item) => ({
-            type: 'remove',
-            productId: item.productId,
-          }));
-          await patchCart(removeOps, parsed.version);
-        }
-      }
+      // Always start with a fresh cart for the new bundle selection.
+      // Clear any previous backend cart from localStorage first.
+      localStorage.removeItem('backendCart');
+      window.dispatchEvent(new Event('backend-cart-updated'));
 
-      // Now add the selected bundle items to a fresh cart
+      // Add the selected bundle items as a fresh cart
       const operations = bundle.items.map((item) => ({
         type: 'add',
         productId: item.product_id,
         quantity: item.quantity,
       }));
       const cartRes = await patchCart(operations, null);
-      // Store backend cart in localStorage for the Cart page to pick up
+      // Store the new backend cart
       localStorage.setItem('backendCart', JSON.stringify(cartRes));
       window.dispatchEvent(new Event('backend-cart-updated'));
       addMessage('system', null, { type: 'cart_success', data: cartRes, bundleName: bundle.bundle_name });
@@ -201,6 +193,9 @@ const SmartAssistant = () => {
     setBundles(null);
     setAnsweredQuestions([]);
     setAddingBundle(null);
+    // Clear stale backend cart from previous sessions
+    localStorage.removeItem('backendCart');
+    window.dispatchEvent(new Event('backend-cart-updated'));
   };
 
   // ─── Render Message Content ────────────────────────────────────────────

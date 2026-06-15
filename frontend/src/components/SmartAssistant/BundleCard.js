@@ -43,18 +43,23 @@ const BundleCard = ({ bundle, isRecommended, onSelect, isLoading }) => {
         {/* Items list (compact) */}
         <ul className="space-y-1 mb-3">
           {bundle.items.slice(0, 3).map((item, idx) => (
-            <li key={idx} className="flex justify-between text-xs text-gray-700">
-              <span className="truncate mr-2">
-                • {item.name}
-                {item.is_substituted && (
-                  <span className="text-orange-600 ml-1">(sub)</span>
-                )}
-              </span>
+            <li key={idx} className="flex items-center justify-between text-xs text-gray-700">
+              <div className="flex items-center gap-1.5 truncate mr-2">
+                <span className="w-5 h-5 rounded bg-gray-100 flex items-center justify-center flex-shrink-0 text-[10px] font-bold text-gray-500">
+                  {(item.name || '?').charAt(0).toUpperCase()}
+                </span>
+                <span className="truncate">
+                  {item.name}
+                  {item.is_substituted && (
+                    <span className="text-orange-600 ml-1">(sub)</span>
+                  )}
+                </span>
+              </div>
               <span className="font-medium whitespace-nowrap">₹{item.unit_price}</span>
             </li>
           ))}
           {bundle.items.length > 3 && (
-            <li className="text-xs text-gray-500 italic">
+            <li className="text-xs text-gray-500 italic pl-6">
               +{bundle.items.length - 3} more items...
             </li>
           )}
@@ -136,14 +141,24 @@ const BundleDetailDialog = ({ bundle, isRecommended, onClose, onAddToCart, isLoa
           {bundle.items.map((item, idx) => (
             <div key={idx} className="px-5 py-3 flex items-center gap-3">
               {/* Product Image */}
-              <img
-                src={item.image_url || `https://www.bigbasket.com/media/uploads/p/l/${item.product_id}.jpg`}
-                alt={item.name}
-                className="w-14 h-14 object-contain rounded-lg border border-gray-100 bg-white flex-shrink-0"
-                onError={(e) => {
-                  e.target.src = 'https://via.placeholder.com/56x56?text=' + encodeURIComponent(item.name?.charAt(0) || '?');
-                }}
-              />
+              <div className="w-14 h-14 flex-shrink-0 rounded-lg border border-gray-100 bg-gray-50 overflow-hidden flex items-center justify-center">
+                {item.image_url ? (
+                  <img
+                    src={item.image_url}
+                    alt={item.name}
+                    className="w-full h-full object-contain"
+                    onError={(e) => {
+                      // Replace broken image with initials placeholder
+                      e.target.style.display = 'none';
+                      e.target.parentNode.innerHTML = `<div class="w-full h-full flex items-center justify-center bg-orange-100 text-orange-600 font-bold text-lg">${(item.name || '?').charAt(0).toUpperCase()}</div>`;
+                    }}
+                  />
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center bg-orange-100 text-orange-600 font-bold text-lg">
+                    {(item.name || '?').charAt(0).toUpperCase()}
+                  </div>
+                )}
+              </div>
 
               {/* Product Info */}
               <div className="flex-1 min-w-0">
