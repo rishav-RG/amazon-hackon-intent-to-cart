@@ -43,7 +43,7 @@ class ClarificationResponse(BaseModel):
 
     complete: bool
     next_question: str | None = None
-    questions_remaining: int = Field(ge=0, le=3)
+    questions_remaining: int = Field(ge=0, le=5)
     answered_questions: list[ClarificationAnswer] = Field(default_factory=list)
     bundle_context: BundleContext | None = None
 

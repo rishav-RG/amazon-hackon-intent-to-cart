@@ -7,49 +7,65 @@ functions to retrieve questions in sequence during a clarification dialogue.
 
 from app.exceptions import AppException, INTENT_NOT_FOUND
 
-MAX_CLARIFICATION_QUESTIONS = 3
+MAX_CLARIFICATION_QUESTIONS = 5
 
-# Mapping: intent_type -> list of clarification questions (≥3 each)
+# Mapping: intent_type -> list of clarification questions (≥5 each)
 CLARIFICATION_MAP: dict[str, list[str]] = {
     "add_to_cart": [
         "What specific product are you looking for?",
         "How many units would you like to add?",
         "Do you have a preferred brand or variant?",
+        "What's your budget for this purchase?",
+        "Any other preferences (size, flavor, etc.)?",
     ],
     "remove_from_cart": [
         "Which item would you like to remove from your cart?",
         "Would you like to remove all units or just reduce the quantity?",
         "Is there a reason you'd like to remove this item?",
+        "Would you like a substitute recommendation instead?",
+        "Anything else you'd like to adjust in your cart?",
     ],
     "search_product": [
         "What category does the product belong to?",
+        "How much quantity do you need?",
         "Do you have a preferred price range?",
+        "Any preferred brand?",
         "Are there any specific features you're looking for?",
     ],
     "reorder": [
         "Which previous order would you like to reorder from?",
         "Would you like to reorder all items or select specific ones?",
+        "How many of each item do you need this time?",
         "Should I use the same delivery address as before?",
+        "Any items you'd like to skip or substitute?",
     ],
     "substitute": [
         "Which product would you like to find a substitute for?",
         "Do you have any preferences for the substitute (brand, price)?",
+        "How many units of the substitute do you need?",
+        "What's your budget for the replacement?",
         "Are there any ingredients or features to avoid?",
     ],
     "compare": [
         "Which products would you like to compare?",
         "What features are most important to you in this comparison?",
+        "How much quantity of the chosen product will you need?",
         "Do you have a budget limit for the comparison?",
+        "Any brand preferences?",
     ],
     "get_recommendation": [
         "What type of product are you looking for recommendations on?",
         "Is this for personal use or a gift?",
+        "How many do you need?",
         "Do you have a preferred price range for recommendations?",
+        "Any brand or dietary preferences?",
     ],
     "checkout": [
         "Would you like to use your saved payment method?",
         "Should I apply any available coupons or promotions?",
         "Would you like standard or express delivery?",
+        "Is the delivery address correct?",
+        "Any last items you'd like to add before checkout?",
     ],
 }
 
@@ -165,6 +181,9 @@ async def get_next_question_smart(
             confidence=confidence,
             entities=entities,
             previous_questions=previous_questions,
+            previous_answers=None,  # Legacy caller doesn't have answers
+            shopping_theme=None,  # Legacy caller doesn't have theme
+            constraints=None,  # Legacy caller doesn't have constraints
         )
 
         if llm_question:

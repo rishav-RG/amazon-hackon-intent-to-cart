@@ -78,6 +78,10 @@ async def post_clarification(
     session_data = json.loads(session_raw)
     answered_count: int = session_data["answered_count"]
     current_question: str = session_data["current_question"]
+    session_entities = session_data.get("entities", []) or []
+    session_constraints = session_data.get("constraints", {}) or {}
+    session_shopping_theme = session_data.get("shopping_theme")
+
     if "answered_questions" in session_data:
         answered_questions_data = list(session_data["answered_questions"])
         history_loaded_from_session = True
@@ -108,30 +112,47 @@ async def post_clarification(
     db.add(clarification)
     await db.commit()
 
-    # 5. Get next question (try LLM-powered smart question, fallback to static)
+    # 4b. Merge the latest answer into constraints (dynamic context update)
+    from app.services.dynamic_clarification import (
+        merge_answer_into_constraints,
+        extract_entities_from_answer,
+    )
+    updated_constraints = merge_answer_into_constraints(
+        session_constraints, current_question, request.answer
+    )
+    # Extract any new entities from the answer
+    new_entities = extract_entities_from_answer(request.answer, session_entities)
+    updated_entities = session_entities + new_entities
+
+    # 5. Get next question using dynamic context-aware system
     try:
-        from app.services.clarification_engine import get_next_question_smart
-        # Collect previous questions from session
-        previous_questions = [item["question"] for item in answered_questions_data]
-        next_question = await get_next_question_smart(
+        from app.services.clarification_manager import resolve_question
+        next_question = await resolve_question(
             user_text=intent.raw_text,
             intent_type=intent.intent_type,
             confidence=intent.confidence,
-            entities=[],  # entities not stored in session currently
-            previous_questions=previous_questions,
-            answered_count=answered_count + 1,
+            entities=updated_entities,
+            constraints=updated_constraints,
+            conversation=answered_questions_data,
+            shopping_theme=session_shopping_theme,
+            questions_asked=answered_count + 1,
         )
-    except Exception:
+    except Exception as exc:
+        logger.warning("Dynamic clarification failed: %s — using static fallback", exc)
         # Fallback to static questions
         next_question = get_next_question(intent.intent_type, answered_count + 1)
 
     # 6. Handle next state
     if next_question is not None:
-        # More questions remaining — update Redis session
+        # More questions remaining — update Redis session with accumulated context
         updated_session = json.dumps({
             "answered_count": answered_count + 1,
             "current_question": next_question,
             "answered_questions": answered_questions_data,
+            "entities": updated_entities,
+            "constraints": updated_constraints,
+            "shopping_theme": session_shopping_theme,
+            "confidence": session_data.get("confidence", intent.confidence),
         })
         await redis_client.set(session_key, updated_session, ex=_SESSION_TTL_SECONDS)
 

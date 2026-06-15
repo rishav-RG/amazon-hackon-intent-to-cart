@@ -178,16 +178,16 @@ class TestClarificationResponse:
             ClarificationResponse(
                 complete=False,
                 next_question="Question?",
-                questions_remaining=4,
+                questions_remaining=6,
             )
 
     def test_questions_remaining_at_max(self):
         resp = ClarificationResponse(
             complete=False,
             next_question="Question?",
-            questions_remaining=3,
+            questions_remaining=5,
         )
-        assert resp.questions_remaining == 3
+        assert resp.questions_remaining == 5
 
     def test_next_question_can_be_none_when_incomplete(self):
         """next_question=None is allowed when complete=False (edge case)."""

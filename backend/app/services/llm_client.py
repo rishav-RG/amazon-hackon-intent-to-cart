@@ -207,19 +207,22 @@ async def classify_intent_llm(text: str) -> Optional[dict]:
 # 2. Clarification Question Generation via LLM
 # ──────────────────────────────────────────────────────────────────────────────
 
-CLARIFICATION_PROMPT = """You are a helpful shopping assistant for an e-commerce app.
+CLARIFICATION_PROMPT = """You are a helpful shopping assistant for an Indian grocery e-commerce app.
 
 A user said: "{user_text}"
 We classified their intent as: {intent_type} (confidence: {confidence})
+Shopping theme: {shopping_theme}
 Entities detected: {entities}
-Questions already asked: {previous_questions}
+Constraints collected: {constraints}
+Conversation so far:
+{conversation_history}
 
 Generate the next clarification question to better understand what the user needs.
 The question should:
 - Be short and conversational (max 15 words)
-- NOT repeat anything already covered by the entities or previous questions
-- Focus on the most important missing information
-- Be specific to what the user said
+- NOT repeat anything already covered by the entities, constraints, or previous answers
+- Focus on the most important missing information for product retrieval
+- Be specific to what the user said and their shopping theme
 
 Respond ONLY with valid JSON (no markdown):
 {{"question": "your question here"}}"""
@@ -231,6 +234,9 @@ async def generate_clarification_question(
     confidence: float,
     entities: list[str],
     previous_questions: list[str],
+    previous_answers: list[str] | None = None,
+    shopping_theme: str | None = None,
+    constraints: dict | None = None,
 ) -> Optional[str]:
     """
     Generate a contextual clarification question using Gemini.
@@ -243,12 +249,15 @@ async def generate_clarification_question(
         confidence: Classification confidence
         entities: Extracted entities from the text
         previous_questions: Questions already asked in this session
+        previous_answers: Answers to previous questions (paired with previous_questions)
+        shopping_theme: Identified shopping theme (e.g., biryani_ingredients)
+        constraints: Constraints collected so far {quantity, budget, brand, diet}
         
     Returns:
         A clarification question string, or None on failure.
     """
     # Build cache key from all relevant context
-    context_str = f"{user_text}|{intent_type}|{len(previous_questions)}"
+    context_str = f"{user_text}|{intent_type}|{len(previous_questions)}|{shopping_theme}"
     cache_key = _make_cache_key("llm_clarify", context_str)
 
     # Check cache
@@ -259,17 +268,37 @@ async def generate_clarification_question(
     except Exception:
         pass
 
+    # Format conversation history
+    conversation_lines = []
+    if previous_questions and previous_answers:
+        for i, (q, a) in enumerate(zip(previous_questions, previous_answers), 1):
+            conversation_lines.append(f"  Q{i}: {q}")
+            conversation_lines.append(f"  A{i}: {a}")
+    elif previous_questions:
+        for i, q in enumerate(previous_questions, 1):
+            conversation_lines.append(f"  Q{i}: {q}")
+    conversation_str = "\n".join(conversation_lines) if conversation_lines else "  (first question)"
+
+    # Format constraints
+    constraints_str = "none"
+    if constraints:
+        filled = {k: v for k, v in constraints.items() if v is not None}
+        if filled:
+            constraints_str = ", ".join(f"{k}={v}" for k, v in filled.items())
+
     # Build prompt
     prompt = CLARIFICATION_PROMPT.format(
         user_text=user_text,
         intent_type=intent_type,
         confidence=confidence,
+        shopping_theme=shopping_theme or "not identified",
         entities=", ".join(entities) if entities else "none",
-        previous_questions=", ".join(f'"{q}"' for q in previous_questions) if previous_questions else "none (this is the first question)",
+        constraints=constraints_str,
+        conversation_history=conversation_str,
     )
 
     # Call Gemini
-    raw_response = await _call_gemini(prompt, timeout=2.0)  # Slightly shorter timeout for clarification
+    raw_response = await _call_gemini(prompt, timeout=2.0)
 
     if raw_response is None:
         return None

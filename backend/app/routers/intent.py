@@ -80,7 +80,7 @@ async def classify_intent(
     await db.commit()
     await db.refresh(intent)
 
-    # Step 4: Clarification via priority-ordered slot manager.
+    # Step 4: Clarification via dynamic context-aware system.
     # Triggers when slots are missing OR confidence < 0.7 (preserves old behavior).
     clarification_question = None
     needs_clar = result.needs_clarification or result.confidence < 0.7
@@ -93,6 +93,9 @@ async def classify_intent(
                 entities=result.entities,
                 constraints=result.constraints,
                 llm_suggested=result.clarification_question,
+                conversation=[],  # No conversation yet — this is the initial question
+                shopping_theme=result.shopping_theme,
+                questions_asked=0,
             )
             # Final safety net: static first question
             if clarification_question is None and result.confidence < 0.7:

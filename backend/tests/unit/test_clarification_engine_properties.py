@@ -58,7 +58,7 @@ class TestClarificationEngineQuestionRetrieval:
     @settings(max_examples=100)
     @given(
         intent_type=st.sampled_from(VALID_INTENT_TYPES),
-        answered_count=st.integers(min_value=3, max_value=1000),
+        answered_count=st.integers(min_value=5, max_value=1000),
     )
     def test_returns_none_when_at_or_above_max(self, intent_type, answered_count):
         """

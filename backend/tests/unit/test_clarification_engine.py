@@ -25,8 +25,8 @@ VALID_INTENT_TYPES = [
 class TestClarificationMapCompleteness:
     """Tests for CLARIFICATION_MAP structure and content."""
 
-    def test_max_clarification_questions_is_three(self):
-        assert MAX_CLARIFICATION_QUESTIONS == 3
+    def test_max_clarification_questions_is_five(self):
+        assert MAX_CLARIFICATION_QUESTIONS == 5
 
     def test_all_eight_intent_types_are_mapped(self):
         for intent_type in VALID_INTENT_TYPES:
@@ -88,7 +88,7 @@ class TestGetNextQuestion:
         assert result == CLARIFICATION_MAP["add_to_cart"][2]
 
     def test_returns_none_when_answered_equals_max(self):
-        result = get_next_question("add_to_cart", 3)
+        result = get_next_question("add_to_cart", 5)
         assert result is None
 
     def test_returns_none_when_answered_exceeds_max(self):
